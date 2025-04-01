@@ -37,6 +37,12 @@ jobs:
         include:
           - runson:
               display: macos-14-arm64
+              name: macos-14-arm64
+            java-version: 11
+            java-distribution: corretto
+            container: ""  # Not using container for mac-os as we have images only for linux
+          - runson:
+              display: macos-14
               name: macos-14
             java-version: 11
             java-distribution: corretto
@@ -58,8 +64,6 @@ jobs:
         with:
           distribution: ${{ matrix.java-distribution }}
           java-version: ${{ matrix.java-version }}
-          # Not specifying this defaults to architecture of the runner
-          architecture: ${{ matrix.runson.name == 'macos-14' && 'x64' || '' }}
       - name: Checkout sources
         uses: actions/checkout@v4
       - name: Build and test
