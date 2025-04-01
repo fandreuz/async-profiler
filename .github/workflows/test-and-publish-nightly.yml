@@ -33,25 +33,29 @@ jobs:
             name: ubuntu-latest # Using "latest" here as the build and test will any ways run inside a container which we control
         java-version: [11, 17, 21, 24]
         java-distribution: [corretto]
+        architecture: ""
         container: ["public.ecr.aws/async-profiler/asprof-builder-x86:latest"]
         include:
-          - runson:
-              display: macos-14-arm64
-              name: macos-14-arm64
-            java-version: 11
-            java-distribution: corretto
-            container: ""  # Not using container for mac-os as we have images only for linux
           - runson:
               display: macos-14
               name: macos-14
             java-version: 11
             java-distribution: corretto
+            architecture: ""
+            container: ""  # Not using container for mac-os as we have images only for linux
+          - runson:
+              display: macos-14-arm64-jdkx64
+              name: macos-14
+            java-version: 11
+            java-distribution: corretto
+            architecture: x64
             container: ""  # Not using container for mac-os as we have images only for linux
           - runson:
               display: linux-arm64
               name: ubuntu-24.04-arm # There is no "latest" tag available (yet) as ARM runners are still in public preview
             java-version: 11
             java-distribution: corretto
+            architecture: ""
             container: "public.ecr.aws/async-profiler/asprof-builder-arm:latest"
     runs-on: ${{ matrix.runson.name }}
     container:
@@ -64,6 +68,7 @@ jobs:
         with:
           distribution: ${{ matrix.java-distribution }}
           java-version: ${{ matrix.java-version }}
+          java-version: ${{ matrix.architecture }}
       - name: Checkout sources
         uses: actions/checkout@v4
       - name: Build and test
