@@ -68,7 +68,7 @@ jobs:
         with:
           distribution: ${{ matrix.java-distribution }}
           java-version: ${{ matrix.java-version }}
-          java-version: ${{ matrix.architecture }}
+          architecture: ${{ matrix.architecture }}
       - name: Checkout sources
         uses: actions/checkout@v4
       - name: Build and test
