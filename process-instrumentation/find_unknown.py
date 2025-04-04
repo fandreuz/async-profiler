@@ -2,7 +2,6 @@ import pathlib
 import sys
 
 sys.path.append(str(pathlib.Path(__file__).parent))
-from data import TrieNode
 from utils import find_function_name
 
 base_address = int(sys.argv[1], 16)
@@ -23,7 +22,7 @@ def _process_line(line: str):
     _process_address(callee)
 
 
-def _process_path(path: pathlib.Path) -> TrieNode:
+def _process_path(path: pathlib.Path):
     with open(path) as file:
         for line in file:
             _process_line(line)
