@@ -9,5 +9,9 @@ class TrieNode:
         self.children: dict[str, TrieNode] = dict()
         self.parent = parent
 
-        self.last_entry_time_ns = -1
-        self.time_ns = 0
+        self.last_entry_time = -1
+        self.time_total = 0
+
+    @property
+    def is_root(self):
+        return self.parent is None
