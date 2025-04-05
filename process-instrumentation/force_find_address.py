@@ -2,17 +2,13 @@ import sys
 import pathlib
 
 sys.path.append(str(pathlib.Path(__file__).parent))
-from utils import find_function_name
+from proc_map_utils import find_function_name, read_proc_map
 
-_address = sys.argv[1]
-
-with open("proc_maps.txt") as file:
-    for line in file:
-        if ".so" in line:
-            address_range, *_, lib_path = line.split(" ")
-            address_start = int(address_range.split("-")[0].strip(), base=16)
-            lib_path = lib_path.strip()
-
+if __name__ == "__main__":
+    _address = sys.argv[1]
+    proc_map = read_proc_map(pathlib.Path(sys.argv[2]))
+    for address_start, lib_path in zip(proc_map.address_starts, proc_map.lib_paths):
+        if ".so" in lib_path:
             name = find_function_name(
                 address=_address, base_address_int=address_start, lib_path=lib_path
             )

@@ -2,18 +2,20 @@ import pathlib
 import sys
 
 sys.path.append(str(pathlib.Path(__file__).parent))
-from utils import find_function_name, unknown_label
+from proc_map_utils import find_function_name
 
-_base_address = int(sys.argv[1], 16)
+_asprof_lib_path = "./build/lib/libasyncProfiler.so"
 _known_addresses: set[str] = set()
 
 
 def _process_address(address: str):
     if address not in _known_addresses:
         _known_addresses.add(address)
-        function_name = find_function_name(address, _base_address)
-        if function_name == unknown_label:
-            print(f"{address}")
+        function_name = find_function_name(
+            address=address, base_address_int=_base_address, lib_path=_asprof_lib_path
+        )
+        if not function_name:
+            print(f"'{address}'")
 
 
 def _process_line(line: str):
@@ -25,8 +27,10 @@ def _process_line(line: str):
 def _process_path(path: pathlib.Path):
     with open(path) as file:
         for line in file:
-            _process_line(line)
+            _process_line(line.strip())
 
 
-for path in pathlib.Path(".").glob("traces*.txt"):
-    _process_path(path)
+if __name__ == "__main__":
+    _base_address = int(sys.argv[1], 16)
+    for path in pathlib.Path(".").glob("traces*.txt"):
+        _process_path(path)
