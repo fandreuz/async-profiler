@@ -10,16 +10,28 @@ from data import TrieNode
 from utils import find_function_name
 
 
-base_address = int(sys.argv[1], 16)
+_base_address = int(sys.argv[1], base=16)
+_lib_path = "./build/lib/libasyncProfiler.so"
 
 
 def _process_line(line: str, last_trie_node: TrieNode) -> TrieNode:
-    enter_exit, partial_time_s, partial_time_ns, caller, callee = line.split(",")
+    enter_exit, partial_time_s, partial_time_ns, caller_address, callee_address = (
+        line.split(",")
+    )
 
     time_ns = int(partial_time_ns) + int(partial_time_s) * int(1e9)
 
-    caller_name = find_function_name(caller, base_address)
-    callee_name = find_function_name(callee, base_address)
+    caller_name = find_function_name(
+        address=caller_address, base_address_int=_base_address, lib_path=_lib_path
+    )
+    if not caller_name:
+        caller_name = caller_address
+
+    callee_name = find_function_name(
+        address=callee_address, base_address_int=_base_address, lib_path=_lib_path
+    )
+    if not callee_name:
+        callee_name = callee_address
 
     if enter_exit == "E":
         if last_trie_node.name != caller_name:

@@ -2,17 +2,17 @@ import pathlib
 import sys
 
 sys.path.append(str(pathlib.Path(__file__).parent))
-from utils import find_function_name
+from utils import find_function_name, unknown_label
 
-base_address = int(sys.argv[1], 16)
-known_addresses: set[str] = set()
+_base_address = int(sys.argv[1], 16)
+_known_addresses: set[str] = set()
 
 
 def _process_address(address: str):
-    if address not in known_addresses:
-        known_addresses.add(address)
-        function_name = find_function_name(address, base_address)
-        if function_name == "????":
+    if address not in _known_addresses:
+        _known_addresses.add(address)
+        function_name = find_function_name(address, _base_address)
+        if function_name == unknown_label:
             print(f"{address}")
 
 
