@@ -19,7 +19,7 @@ const u64 NANOTIME_FREQ = 1000000000;
 
 #define TSC_SUPPORTED true
 
-static inline u64 rdtsc() {
+static inline u64 __attribute__((no_instrument_function)) rdtsc() {
 #if defined(__x86_64__)
     u32 lo, hi;
     asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
