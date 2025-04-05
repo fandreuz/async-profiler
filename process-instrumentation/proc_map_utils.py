@@ -9,13 +9,13 @@ import re
 _normalization_pattern = re.compile("(?:\n+|\\(discriminator \\d+\\)|:\\d+)")
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
+@dataclasses.dataclass(frozen=True)
 class ProcMapEntry:
     address_start: int
     lib_path: str
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
+@dataclasses.dataclass(frozen=True)
 class ProcMap:
     address_starts: tuple[int]
     lib_paths: tuple[str]
@@ -60,6 +60,20 @@ def read_proc_map(path: pathlib.Path) -> ProcMap:
         sorted_data = sorted(_process_line(line.strip()) for line in file)
         addresses, lib_paths = zip(*sorted_data)
         return ProcMap(address_starts=addresses, lib_paths=lib_paths)
+
+
+def keep_only_base_address(proc_map: ProcMap) -> ProcMap:
+    known: set[str] = set()
+    filtered_addrs = []
+    filtered_paths = []
+    for addr, lib_path in zip(proc_map.address_starts, proc_map.lib_paths):
+        if lib_path not in known:
+            filtered_addrs.append(addr)
+            filtered_paths.append(lib_path)
+            known.add(lib_path)
+    return ProcMap(
+        address_starts=tuple(filtered_addrs), lib_paths=tuple(filtered_paths)
+    )
 
 
 def find_lib_load_location(
