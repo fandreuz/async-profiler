@@ -124,12 +124,30 @@ def _dfs(node: TrieNode, tree: list[str]) -> int:
     return non_cum_time
 
 
+def _into_new_root(root: TrieNode, old_root: TrieNode):
+    root.time_total += old_root.time_total
+    for child_name, old_child in old_root.children.items():
+        if child_name not in root.children:
+            root.children[child_name] = TrieNode(name=child_name, parent=root)
+        _into_new_root(root.children[child_name], old_child)
+
+
+def _aggregate(roots: list[TrieNode]) -> TrieNode:
+    new_root = TrieNode(name="root")
+    for root in roots:
+        _into_new_root(root=new_root, old_root=root)
+    return new_root
+
+
 if __name__ == "__main__":
     proc_map = keep_only_base_address(read_proc_map(sys.argv[1]))
 
     with multiprocessing.Pool(processes=4) as pool:
         paths = pathlib.Path(".").glob(sys.argv[2])
         roots = pool.starmap(_process_path, ((p, proc_map) for p in paths))
+
+    if len(sys.argv) == 4 and bool(sys.argv[3]):
+        roots = (_aggregate(roots),)
 
     for root_node in roots:
         _dfs(root_node, [])
