@@ -50,19 +50,27 @@ extern "C" __attribute__((destructor)) void tracing_deconstructor(void) {
 
 extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   if (fp == NULL) {
+    pthread_mutex_lock(&mutex);
+
     char buffer[50];
     sprintf(buffer, "traces%d.txt", gettid());
+    // Truncate
     fp = fopen(buffer, "w");
     if (fp == NULL) {
       fprintf(stderr, "Could not open file %s\n", buffer);
       return;
     }
+    fp = freopen(buffer, "a", fp);
+    if (fp == NULL) {
+      fprintf(stderr, "Could not reopen file %s\n", buffer);
+      return;
+    }
 
-    pthread_mutex_lock(&mutex);
     if (fp_array == NULL) {
       fp_array = (FILE **)malloc(50 * sizeof(FILE *));
     }
     fp_array[fp_array_next_idx++] = fp;
+
     pthread_mutex_unlock(&mutex);
   }
 
