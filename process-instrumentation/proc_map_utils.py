@@ -8,7 +8,8 @@ import sys
 import subprocess
 import re
 
-_normalization_pattern = re.compile("(?:\n+|\\(discriminator \\d+\\)|:\\d+)")
+# Remove new lines, (...), line numbers, exceeding spaces
+_normalization_pattern = re.compile("(?:\n+|\\([^)]*\\)|:\\d+|\\s{2,})")
 
 
 @dataclasses.dataclass(frozen=True)
