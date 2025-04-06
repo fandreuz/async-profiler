@@ -7,6 +7,7 @@
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread FILE *fp;
+static __thread bool lock_available = true;
 static FILE **fp_array;
 static int fp_array_next_idx = 0;
 
@@ -64,7 +65,11 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     pthread_mutex_unlock(&mutex);
   }
 
-  fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+  if (lock_available) {
+    lock_available = false;
+    fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+    lock_available = true;
+  }
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
