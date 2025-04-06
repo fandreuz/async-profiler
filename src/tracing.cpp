@@ -66,8 +66,6 @@ extern "C" void initialize_asprof_address_range() {
       break;
     }
   }
-  fprintf(stderr, "Async-Profiler: %lu -> %lu\n", asprof_range->start,
-          asprof_range->end);
 }
 
 extern "C" __attribute__((constructor)) void tracing_constructor(void) {
