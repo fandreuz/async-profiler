@@ -1,7 +1,7 @@
 set -eux
 
+OUTPUT_FILE=${OUTPUT_FILE:-processed_traces.txt}
 PROC_MAPS_FILE=proc_maps.txt
-OUTPUT_FILE=processed_traces.txt
 
 rm -f traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
 
