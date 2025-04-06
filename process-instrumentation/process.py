@@ -110,8 +110,8 @@ def _process_path(path: pathlib.Path, proc_map: ProcMap) -> TrieNode:
 def _dfs(node: TrieNode, tree: list[str]) -> int:
     tree.append(node.name)
     children_duration_ns = 0
-    for child in node.children.values():
-        children_duration_ns += _dfs(child, tree)
+    for child_name in sorted(node.children.keys()):
+        children_duration_ns += _dfs(node.children[child_name], tree)
 
     print(f"{';'.join(tree)} {node.time_total - children_duration_ns}")
     tree.pop()
@@ -132,9 +132,9 @@ def _into_new_root(root: TrieNode, old_root: TrieNode):
         _into_new_root(root.children[child_name], old_child)
 
 
-def _aggregate(roots: list[TrieNode]) -> TrieNode:
+def _aggregate(root: TrieNode, old_roots: list[TrieNode]) -> TrieNode:
     new_root = TrieNode(name="root")
-    for root in roots:
+    for root in old_roots:
         _into_new_root(root=new_root, old_root=root)
     return new_root
 
@@ -146,8 +146,12 @@ if __name__ == "__main__":
         paths = pathlib.Path(".").glob(sys.argv[2])
         roots = pool.starmap(_process_path, ((p, proc_map) for p in paths))
 
+    root = TrieNode(name="root")
     if len(sys.argv) == 4 and bool(sys.argv[3]):
-        roots = (_aggregate(roots),)
+        root = _aggregate(root=root, old_roots=roots)
+    else:
+        for old_root in roots:
+            root.children[old_root.name] = old_root
+            old_root.parent = root
 
-    for root_node in roots:
-        _dfs(root_node, [])
+    _dfs(root, [])
