@@ -1,5 +1,4 @@
 #include "tsc.h"
-#include <atomic>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -15,7 +14,6 @@ struct AddressRange {
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread FILE *fp;
-static __thread std::atomic_flag lock_taken = ATOMIC_FLAG_INIT;
 static FILE **fp_array;
 static int fp_array_next_idx = 0;
 static u64 last_rtdsc = 0;
@@ -141,32 +139,18 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   if (!check_asprof_range((uintptr_t)callee))
     return;
 
-  char buffer[50];
   u64 now = rdtsc();
-  sprintf(buffer, "E,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+  fprintf(fp, "E,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
           (int *)callee);
-  if (!atomic_flag_test_and_set(&lock_taken)) {
-    last_rtdsc = now;
-    fputs(buffer, fp);
-    atomic_flag_clear(&lock_taken);
-  } else {
-    fprintf(stderr, "Dropping E %p -> %p\n", caller, callee);
-  }
+  last_rtdsc = now;
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   if (!check_asprof_range((uintptr_t)callee))
     return;
 
-  char buffer[50];
   u64 now = rdtsc();
-  sprintf(buffer, "X,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+  fprintf(fp, "X,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
           (int *)callee);
-  if (!atomic_flag_test_and_set(&lock_taken)) {
-    last_rtdsc = now;
-    fputs(buffer, fp);
-    atomic_flag_clear(&lock_taken);
-  } else {
-    fprintf(stderr, "Dropping X %p -> %p\n", caller, callee);
-  }
+  last_rtdsc = now;
 }
