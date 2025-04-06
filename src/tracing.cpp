@@ -1,10 +1,10 @@
 #include "tsc.h"
+#include <atomic>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <atomic>
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread FILE *fp;
@@ -74,8 +74,10 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     pthread_mutex_unlock(&mutex);
   }
 
+  char buffer[50];
+  sprintf(buffer, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
-    fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+    fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
   } else {
     fprintf(stderr, "Dropping E %p -> %p\n", caller, callee);
@@ -83,8 +85,10 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
+  char buffer[50];
+  sprintf(buffer, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
-    fprintf(fp, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+    fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
   } else {
     fprintf(stderr, "Dropping X %p -> %p\n", caller, callee);
