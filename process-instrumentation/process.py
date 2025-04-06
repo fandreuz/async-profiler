@@ -37,7 +37,9 @@ def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]
     return function_name if function_name else address
 
 
-def _process_line(line: str, last_trie_node: TrieNode, proc_map: ProcMap) -> TrieNode:
+def _process_line(
+    line: str, last_trie_node: TrieNode, proc_map: ProcMap, current_time: int
+) -> tuple[TrieNode, int]:
     enter_exit, time_s, caller_address, callee_address = line.split(",")
 
     time = int(time_s)
@@ -45,6 +47,9 @@ def _process_line(line: str, last_trie_node: TrieNode, proc_map: ProcMap) -> Tri
         raise ValueError(
             f"Expected monotonically increasing time, offending line: {line}"
         )
+    current_time += time
+    # Make sure it's not used anymore
+    del time
 
     caller_name = _find_function_name(address=caller_address, proc_map=proc_map)
     callee_name = _find_function_name(address=callee_address, proc_map=proc_map)
@@ -65,8 +70,8 @@ def _process_line(line: str, last_trie_node: TrieNode, proc_map: ProcMap) -> Tri
             )
 
         node = last_trie_node.children[callee_name]
-        node.last_entry_time = time
-        return node
+        node.last_entry_time = current_time
+        return node, current_time
 
     elif enter_exit == "X":
         if last_trie_node.name != callee_name:
@@ -80,9 +85,9 @@ def _process_line(line: str, last_trie_node: TrieNode, proc_map: ProcMap) -> Tri
         if last_trie_node.is_root:
             raise RuntimeError(f"Can't exit from root")
 
-        last_trie_node.time_total += time - last_trie_node.last_entry_time
+        last_trie_node.time_total += current_time - last_trie_node.last_entry_time
         last_trie_node.last_entry_time = -1
-        return last_trie_node.parent
+        return last_trie_node.parent, current_time
 
     raise RuntimeError(f"Unexpected value for enter_exit={enter_exit}")
 
@@ -91,9 +96,13 @@ def _process_path(path: pathlib.Path, proc_map: ProcMap) -> TrieNode:
     root = last_trie_node = TrieNode(name=path.name)
 
     with open(path) as file:
+        current_time = 0
         for line in file:
-            last_trie_node = _process_line(
-                line=line.strip(), last_trie_node=last_trie_node, proc_map=proc_map
+            last_trie_node, current_time = _process_line(
+                line=line.strip(),
+                last_trie_node=last_trie_node,
+                proc_map=proc_map,
+                current_time=current_time,
             )
 
     if last_trie_node is not root:

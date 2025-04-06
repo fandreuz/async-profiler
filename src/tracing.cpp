@@ -11,6 +11,7 @@ static __thread FILE *fp;
 static __thread std::atomic_flag lock_taken = ATOMIC_FLAG_INIT;
 static FILE **fp_array;
 static int fp_array_next_idx = 0;
+static u64 last_rtdsc = 0;
 
 extern "C" __attribute__((constructor)) void tracing_constructor(void) {
   FILE *proc_maps_in = fopen("/proc/self/maps", "r");
@@ -66,6 +67,8 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
       return;
     }
 
+    last_rtdsc = rdtsc();
+
     if (fp_array == NULL) {
       fp_array = (FILE **)malloc(50 * sizeof(FILE *));
     }
@@ -75,8 +78,10 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   }
 
   char buffer[50];
-  sprintf(buffer, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+  u64 now = rdtsc();
+  sprintf(buffer, "E,%u,%p,%p\n", (u32) (now - last_rtdsc), (int *)caller, (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
+    last_rtdsc = now;
     fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
   } else {
@@ -86,8 +91,10 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   char buffer[50];
-  sprintf(buffer, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+  u64 now = rdtsc();
+  sprintf(buffer, "X,%u,%p,%p\n", (u32) (now - last_rtdsc), (int *)caller, (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
+    last_rtdsc = now;
     fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
   } else {
