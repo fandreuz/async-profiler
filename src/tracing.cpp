@@ -66,7 +66,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     pthread_mutex_unlock(&mutex);
   }
 
-  if (atomic_flag_test_and_set(&lock_taken)) {
+  if (!atomic_flag_test_and_set(&lock_taken)) {
     fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
     atomic_flag_clear(&lock_taken);
   }
