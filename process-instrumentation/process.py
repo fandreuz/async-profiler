@@ -35,9 +35,9 @@ def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]
         function_name = find_function_name(
             address=shifted_address, lib_path=load_location.lib_path
         )
-        return function_name if function_name else address
     except:
-        return None
+        function_name = None
+    return function_name if function_name else address
 
 
 def _process_line(
