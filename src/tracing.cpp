@@ -84,8 +84,6 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     last_rtdsc = now;
     fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
-  } else {
-    fprintf(stderr, "Dropping E %p -> %p\n", caller, callee);
   }
 }
 
@@ -97,7 +95,5 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     last_rtdsc = now;
     fputs(buffer, fp);
     atomic_flag_clear(&lock_taken);
-  } else {
-    fprintf(stderr, "Dropping X %p -> %p\n", caller, callee);
   }
 }
