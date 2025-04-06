@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdatomic.h>
+#include <atomic>
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread FILE *fp;
-static __thread atomic_bool lock_available;
+static __thread std::atomic_flag lock_taken = ATOMIC_FLAG_INIT;
 static FILE **fp_array;
 static int fp_array_next_idx = 0;
 
@@ -58,8 +58,6 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
       return;
     }
 
-    lock_available = ATOMIC_VAR_INIT(true);
-
     pthread_mutex_lock(&mutex);
     if (fp_array == NULL) {
       fp_array = (FILE **)malloc(50 * sizeof(FILE *));
@@ -68,10 +66,9 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     pthread_mutex_unlock(&mutex);
   }
 
-  if (lock_available) {
-    lock_available = false;
+  if (atomic_flag_test_and_set(&lock_taken)) {
     fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
-    lock_available = true;
+    atomic_flag_clear(&lock_taken);
   }
 }
 
