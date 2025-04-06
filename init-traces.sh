@@ -5,6 +5,7 @@ PROC_MAPS_FILE=proc_maps.txt
 ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
 
 rm -f traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
+rm -rf build
 
 make -j7 CXXFLAGS_EXTRA="-O0 -ggdb3 -finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,/usr/lib,/usr/include,stl_tree,strl_map,stl_vector -Wl,-Map=asprof.map"
 javac MyMain.java

@@ -6,7 +6,7 @@ ASPROF_INSTRUMENTATION_BRANCH=instrumenting-asprof
 
 git checkout $LEFT
 git checkout -b tmp-$LEFT
-trap "git branch -D tmp-$LEFT" EXIT
+trap "git checkout $ORIGINAL_BRANCH && git branch -D tmp-$LEFT" EXIT
 git merge --no-edit $ASPROF_INSTRUMENTATION_BRANCH
 
 OUTPUT_FILE_1=processed_traces_${LEFT}.txt
@@ -14,7 +14,7 @@ OUTPUT_FILE=$OUTPUT_FILE_1 ASPROF_CMD=$ASPROF_CMD ./init-traces.sh
 
 git checkout $RIGHT
 git checkout -b tmp-$RIGHT
-trap "git branch -D tmp-$LEFT && git branch -D tmp-$RIGHT" EXIT
+trap "git checkout $ORIGINAL_BRANCH && git branch -D tmp-$LEFT && git branch -D tmp-$RIGHT" EXIT
 git merge --no-edit $ASPROF_INSTRUMENTATION_BRANCH
 
 OUTPUT_FILE_2=processed_traces_${RIGHT}.txt
@@ -25,5 +25,3 @@ git checkout $ASPROF_INSTRUMENTATION_BRANCH
 DIFF_OUTPUT_FILE=diff_${LEFT}_${RIGHT}.txt
 python3 process-instrumentation/diff.py $OUTPUT_FILE_1 $OUTPUT_FILE_2 > $DIFF_OUTPUT_FILE
 ../FlameGraph/flamegraph.pl $DIFF_OUTPUT_FILE > diff_${LEFT}_${RIGHT}.svg
-
-git checkout $ORIGINAL_BRANCH
