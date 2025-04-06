@@ -114,7 +114,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     char buffer[50];
     sprintf(buffer, "traces%d.txt", gettid());
     // Truncate
-    fp = creat(buffer, O_APPEND);
+    fp = open(buffer, O_CREAT | O_TRUNC | O_APPEND | O_WRONLY, 0644);
     if (fp == -1) {
       fprintf(stderr, "Could not open file %s\n", buffer);
       return;
