@@ -73,5 +73,8 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
-  fprintf(fp, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+  if (!atomic_flag_test_and_set(&lock_taken)) {
+    fprintf(fp, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
+    atomic_flag_clear(&lock_taken);
+  }
 }
