@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdatomic.h>
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread FILE *fp;
-static __thread bool lock_available = true;
+static __thread atomic_bool lock_available;
 static FILE **fp_array;
 static int fp_array_next_idx = 0;
 
@@ -56,6 +57,8 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
       fprintf(stderr, "Could not open file %s\n", buffer);
       return;
     }
+
+    lock_available = ATOMIC_VAR_INIT(true);
 
     pthread_mutex_lock(&mutex);
     if (fp_array == NULL) {
