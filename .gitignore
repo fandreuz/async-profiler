@@ -3,8 +3,7 @@
 /out/
 /target/
 /.idea/
-/test/*.class
+**/*.class
 .vscode
 *.iml
-/src/api/**/*.class
 .gdb_history
