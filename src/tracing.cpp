@@ -77,6 +77,8 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   if (!atomic_flag_test_and_set(&lock_taken)) {
     fprintf(fp, "E,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
     atomic_flag_clear(&lock_taken);
+  } else {
+    fprintf(stderr, "Dropping E %p -> %p\n", caller, callee);
   }
 }
 
@@ -84,5 +86,7 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   if (!atomic_flag_test_and_set(&lock_taken)) {
     fprintf(fp, "X,%llu,%p,%p\n", rdtsc(), (int *)caller, (int *)callee);
     atomic_flag_clear(&lock_taken);
+  } else {
+    fprintf(stderr, "Dropping X %p -> %p\n", caller, callee);
   }
 }
