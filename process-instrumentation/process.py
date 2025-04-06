@@ -31,10 +31,13 @@ def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]
     if shifted_address < 0:
         raise ValueError(f"{load_location}, {address}")
 
-    function_name = find_function_name(
-        address=shifted_address, lib_path=load_location.lib_path
-    )
-    return function_name if function_name else address
+    try:
+        function_name = find_function_name(
+            address=shifted_address, lib_path=load_location.lib_path
+        )
+        return function_name if function_name else address
+    except:
+        return None
 
 
 def _process_line(
