@@ -1,5 +1,4 @@
 #include "tsc.h"
-#include <fcntl.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -14,8 +13,8 @@ struct AddressRange {
 };
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static __thread int fp = -1;
-static int *fp_array;
+static __thread FILE *fp;
+static FILE **fp_array;
 static int fp_array_next_idx = 0;
 static u64 last_rtdsc = 0;
 static AddressRange *asprof_range;
@@ -98,7 +97,8 @@ extern "C" __attribute__((constructor)) void tracing_constructor(void) {
 extern "C" __attribute__((destructor)) void tracing_deconstructor(void) {
   pthread_mutex_lock(&mutex);
   for (int i = 0; i < fp_array_next_idx; i++) {
-    close(fp_array[i]);
+    fflush(fp_array[i]);
+    fclose(fp_array[i]);
   }
   free(fp_array);
   free(asprof_range);
@@ -106,22 +106,27 @@ extern "C" __attribute__((destructor)) void tracing_deconstructor(void) {
 }
 
 extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
-  if (fp == -1) {
+  if (fp == NULL) {
     pthread_mutex_lock(&mutex);
 
     char buffer[50];
     sprintf(buffer, "traces%d.txt", gettid());
     // Truncate
-    fp = creat(buffer, O_APPEND);
-    if (fp == -1) {
+    fp = fopen(buffer, "w");
+    if (fp == NULL) {
       fprintf(stderr, "Could not open file %s\n", buffer);
+      return;
+    }
+    fp = freopen(buffer, "a", fp);
+    if (fp == NULL) {
+      fprintf(stderr, "Could not reopen file %s\n", buffer);
       return;
     }
 
     last_rtdsc = rdtsc();
 
     if (fp_array == NULL) {
-      fp_array = (int *)malloc(50 * sizeof(int));
+      fp_array = (FILE **)malloc(50 * sizeof(FILE *));
       initialize_asprof_address_range();
     }
     fp_array[fp_array_next_idx++] = fp;
@@ -132,22 +137,18 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   if (!check_asprof_range((uintptr_t)callee))
     return;
 
-  char buffer[50];
   u64 now = rdtsc();
-  int size = sprintf(buffer, "E,%u,%p,%p\n", (u32)(now - last_rtdsc),
-                     (int *)caller, (int *)callee);
+  fprintf(fp, "E,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+          (int *)callee);
   last_rtdsc = now;
-  write(fp, buffer, size);
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   if (!check_asprof_range((uintptr_t)callee))
     return;
 
-  char buffer[50];
   u64 now = rdtsc();
-  int size = sprintf(buffer, "X,%u,%p,%p\n", (u32)(now - last_rtdsc),
-                     (int *)caller, (int *)callee);
+  fprintf(fp, "X,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+          (int *)callee);
   last_rtdsc = now;
-  write(fp, buffer, size);
 }
