@@ -233,6 +233,7 @@ coverage: override FAT_BINARY=false
 coverage: clean-coverage
 	$(MAKE) test-cpp CXXFLAGS_EXTRA="-fprofile-arcs -ftest-coverage -fPIC -O0 --coverage"
 	mkdir -p build/test/coverage
+	cd build/test/ && ls && ls ../..
 	cd build/test/ && gcovr -r ../.. --html-details --gcov-executable "$(GCOV)" -o coverage/index.html
 	rm -rf -- -.gc*
 
