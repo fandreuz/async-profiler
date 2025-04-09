@@ -24,4 +24,4 @@ git checkout $ASPROF_INSTRUMENTATION_BRANCH
 
 DIFF_OUTPUT_FILE=diff_${LEFT}_${RIGHT}.txt
 python3 process-instrumentation/diff.py $OUTPUT_FILE_1 $OUTPUT_FILE_2 > $DIFF_OUTPUT_FILE
-../FlameGraph/flamegraph.pl $DIFF_OUTPUT_FILE > diff_${LEFT}_${RIGHT}.svg
+FlameGraph/flamegraph.pl $DIFF_OUTPUT_FILE > diff_${LEFT}_${RIGHT}.svg
