@@ -116,6 +116,7 @@ class VMStructs {
     static jfieldID _tid;
     static jfieldID _klass;
     static int _tls_index;
+    static intptr_t _env_offset;
 
     typedef void (*LockFunc)(void*);
     static LockFunc _lock_func;
@@ -346,6 +347,8 @@ class VMThread : VMStructs {
     }
 
     static int nativeThreadId(JNIEnv* jni, jthread thread);
+
+    JNIEnv* jni();
 
     int osThreadId() {
         const char* osthread = *(const char**) at(_thread_osthread_offset);
