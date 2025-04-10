@@ -396,11 +396,12 @@ int Profiler::getJavaTraceAsync(void* ucontext, ASGCT_CallFrame* frames, int max
         return 0;
     }
 
-    JNIEnv* jni = vm_thread->jni();
-    if (jni == NULL) {
+    ThreadLocalAllocBuffer tlab = ThreadLocalAllocBuffer(vm_thread);
+    if (!tlab.has_start()) {
         // Not a Java thread
         return 0;
     }
+    JNIEnv* jni = vm_thread->jni();
 
     StackFrame frame(ucontext);
     uintptr_t saved_pc, saved_sp, saved_fp;

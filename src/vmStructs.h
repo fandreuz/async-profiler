@@ -111,6 +111,8 @@ class VMStructs {
     static const void* _call_stub_return;
     static const void* _interpreted_frame_valid_start;
     static const void* _interpreted_frame_valid_end;
+    static int _thread_tlab_offset;
+    static int _tlab_start_offset;
 
     static jfieldID _eetop;
     static jfieldID _tid;
@@ -649,6 +651,21 @@ class InterpreterFrame : VMStructs {
 
     static int bcp_offset() {
         return _interpreter_frame_bcp_offset;
+    }
+};
+
+class ThreadLocalAllocBuffer : VMStructs {
+  private:
+    void* _start_ptr;
+
+  public:
+    ThreadLocalAllocBuffer(VMThread* thread) {
+        void* tlab = thread + VMStructs::_thread_tlab_offset;
+        _start_ptr = tlab + VMStructs::_tlab_start_offset;
+    }
+
+    uintptr_t has_start() {
+        return _start_ptr != nullptr;
     }
 };
 

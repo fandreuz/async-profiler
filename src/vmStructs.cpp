@@ -36,6 +36,7 @@ int VMStructs::_thread_anchor_offset = -1;
 int VMStructs::_thread_state_offset = -1;
 int VMStructs::_thread_vframe_offset = -1;
 int VMStructs::_thread_exception_offset = -1;
+int VMStructs::_thread_tlab_offset = -1;
 int VMStructs::_osthread_id_offset = -1;
 int VMStructs::_call_wrapper_anchor_offset = -1;
 int VMStructs::_comp_env_offset = -1;
@@ -106,6 +107,7 @@ const void** VMStructs::_call_stub_return_addr = NULL;
 const void* VMStructs::_call_stub_return = NULL;
 const void* VMStructs::_interpreted_frame_valid_start = NULL;
 const void* VMStructs::_interpreted_frame_valid_end = NULL;
+int VMStructs::_tlab_start_offset = -1;
 
 jfieldID VMStructs::_eetop;
 jfieldID VMStructs::_tid;
@@ -250,6 +252,8 @@ void VMStructs::initOffsets() {
                 // Since JDK 25, _osthread field belongs to Thread rather than JavaThread
                 if (strcmp(field, "_osthread") == 0) {
                     _thread_osthread_offset = *(int*)(entry + offset_offset);
+                } else if (strcmp(field, "_tlab") == 0) {
+                    _thread_tlab_offset = *(int*)(entry + offset_offset);
                 }
             } else if (strcmp(type, "JavaThread") == 0) {
                 if (strcmp(field, "_osthread") == 0) {
@@ -260,6 +264,10 @@ void VMStructs::initOffsets() {
                     _thread_state_offset = *(int*)(entry + offset_offset);
                 } else if (strcmp(field, "_vframe_array_head") == 0) {
                     _thread_vframe_offset = *(int*)(entry + offset_offset);
+                }
+            } else if (strcmp(type, "ThreadLocalAllocBuffer") == 0) {
+                if (strcmp(field, "_start") == 0) {
+                    _tlab_start_offset = *(int*)(entry + offset_offset);
                 }
             } else if (strcmp(type, "ThreadShadow") == 0) {
                 if (strcmp(field, "_exception_file") == 0) {
