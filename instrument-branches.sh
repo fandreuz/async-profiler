@@ -10,6 +10,8 @@ trap "git checkout $ORIGINAL_BRANCH && git branch -D tmp-$LEFT" EXIT
 git merge --no-edit $ASPROF_INSTRUMENTATION_BRANCH
 
 OUTPUT_FILE_1=processed_traces_${LEFT}.txt
+
+OUTPUT_FILE="dont-care1.txt" ASPROF_CMD=$ASPROF_CMD ./init-traces.sh
 OUTPUT_FILE=$OUTPUT_FILE_1 ASPROF_CMD=$ASPROF_CMD ./init-traces.sh
 
 git checkout $RIGHT
@@ -18,6 +20,8 @@ trap "git checkout $ORIGINAL_BRANCH && git branch -D tmp-$LEFT && git branch -D 
 git merge --no-edit $ASPROF_INSTRUMENTATION_BRANCH
 
 OUTPUT_FILE_2=processed_traces_${RIGHT}.txt
+
+OUTPUT_FILE="dont-care2.txt" ASPROF_CMD=$ASPROF_CMD ./init-traces.sh
 OUTPUT_FILE=$OUTPUT_FILE_2 ASPROF_CMD=$ASPROF_CMD ./init-traces.sh
 
 git checkout $ASPROF_INSTRUMENTATION_BRANCH
