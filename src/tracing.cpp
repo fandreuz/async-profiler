@@ -140,8 +140,9 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     return;
 
   char buffer[50];
+  u64 last = last_rtdsc;
   u64 now = rdtsc();
-  sprintf(buffer, "E,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+  sprintf(buffer, "E,%u,%p,%p\n", (u32)(now - last), (int *)caller,
           (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
     last_rtdsc = now;
@@ -157,8 +158,9 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     return;
 
   char buffer[50];
+  u64 last = last_rtdsc;
   u64 now = rdtsc();
-  sprintf(buffer, "X,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
+  sprintf(buffer, "X,%u,%p,%p\n", (u32)(now - last), (int *)caller,
           (int *)callee);
   if (!atomic_flag_test_and_set(&lock_taken)) {
     last_rtdsc = now;
