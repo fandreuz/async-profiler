@@ -2,7 +2,7 @@ set -eux
 
 OUTPUT_FILE=${OUTPUT_FILE:-processed_traces.txt}
 PROC_MAPS_FILE=proc_maps.txt
-ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
+ASPROF_CMD=${ASPROF_CMD:-agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
 
 rm -f traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
 rm -rf build
