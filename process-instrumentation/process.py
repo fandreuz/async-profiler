@@ -153,9 +153,9 @@ def _aggregate(root: TrieNode, old_roots: list[TrieNode]) -> TrieNode:
 
 if __name__ == "__main__":
     proc_map = keep_only_base_address(read_proc_map(sys.argv[1]))
+    paths = tuple(pathlib.Path(".").glob(sys.argv[2]))
 
-    with multiprocessing.Pool(processes=16) as pool:
-        paths = pathlib.Path(".").glob(sys.argv[2])
+    with multiprocessing.Pool(processes=len(paths) // 2) as pool:
         roots = pool.starmap(_process_path, ((p, proc_map) for p in paths))
 
     root = TrieNode(name="root")
