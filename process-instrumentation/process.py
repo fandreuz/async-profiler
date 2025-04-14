@@ -133,7 +133,7 @@ def _dfs(node: TrieNode, tree: list[str]) -> int:
         warnings.warn(f"Non-cumulative time for {node.name} is negative")
         return 0
 
-    return non_cum_time
+    return node.time_total
 
 
 def _into_new_root(root: TrieNode, old_root: TrieNode):
