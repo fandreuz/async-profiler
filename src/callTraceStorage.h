@@ -61,9 +61,9 @@ class CallTraceStorage {
     u32 capacity();
     size_t usedMemory();
 
-    void __attribute__((instrument_function)) collectTraces(std::map<u32, CallTrace*>& map);
+    void collectTraces(std::map<u32, CallTrace*>& map);
     void collectSamples(std::vector<CallTraceSample*>& samples);
-    void __attribute__((instrument_function)) collectSamples(std::map<u64, CallTraceSample>& map);
+    void collectSamples(std::map<u64, CallTraceSample>& map);
 
     u32 put(int num_frames, ASGCT_CallFrame* frames, u64 counter);
     void add(u32 call_trace_id, u64 samples, u64 counter);
