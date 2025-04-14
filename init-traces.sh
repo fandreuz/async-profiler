@@ -2,12 +2,12 @@ set -eux
 
 OUTPUT_FILE=${OUTPUT_FILE:-processed_traces.txt}
 PROC_MAPS_FILE=proc_maps.txt
-ASPROF_CMD=${ASPROF_CMD:-agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
+ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
 
 rm -f traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
 rm -rf build
 
-CXXFLAGS_EXTRA="-O0 -ggdb3 -finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,/usr/lib,/usr/include,stl_tree,strl_map,stl_vector"
+CXXFLAGS_EXTRA="-fplugin=/instrument-attribute-gcc-plugin/instrument_attribute.so -finstrument-functions -O0 -ggdb3"
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
