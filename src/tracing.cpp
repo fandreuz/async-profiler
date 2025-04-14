@@ -138,8 +138,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     return;
 
   u64 now = rdtsc();
-  fprintf(fp, "E,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
-          (int *)callee);
+  fprintf(fp, "E,%u,%p\n", (u32)(now - last_rtdsc), (int *)callee);
   last_rtdsc = now;
 }
 
@@ -148,7 +147,6 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     return;
 
   u64 now = rdtsc();
-  fprintf(fp, "X,%u,%p,%p\n", (u32)(now - last_rtdsc), (int *)caller,
-          (int *)callee);
+  fprintf(fp, "X,%u,%p\n", (u32)(now - last_rtdsc), (int *)callee);
   last_rtdsc = now;
 }
