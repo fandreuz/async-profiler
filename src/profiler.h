@@ -218,7 +218,7 @@ class Profiler {
     CodeCache* findJvmLibrary(const char* lib_name);
     CodeCache* findLibraryByName(const char* lib_name);
     CodeCache* findLibraryByAddress(const void* address);
-    const char* findNativeMethod(const void* address);
+    const char* __attribute__((instrument_function)) findNativeMethod(const void* address);
     CodeBlob* findRuntimeStub(const void* address);
     bool isAddressInCode(const void* pc);
 
