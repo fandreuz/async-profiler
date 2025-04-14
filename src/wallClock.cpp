@@ -75,7 +75,7 @@ class ThreadCpuTimeBuffer {
         storeRelease(t.cpu_time, OS::threadCpuTime(0));
     }
 
-    void drain(ThreadSleepMap& thread_sleep_state) {
+    void __attribute__((instrument_function)) drain(ThreadSleepMap& thread_sleep_state) {
         u64 read_limit = _read_ptr + RINGBUF_SIZE;
         do {
             ThreadCpuTime& t = _ringbuf[_read_ptr & (RINGBUF_SIZE - 1)];

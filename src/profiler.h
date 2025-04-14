@@ -121,7 +121,7 @@ class Profiler {
     void setThreadInfo(int tid, const char* name, jlong java_thread_id);
     void updateThreadName(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread);
     void updateJavaThreadNames();
-    void updateNativeThreadNames();
+    void __attribute__((instrument_function)) updateNativeThreadNames();
     bool excludeTrace(FrameName* fn, CallTrace* trace);
     void mangle(const char* name, char* buf, size_t size);
     Engine* selectEngine(const char* event_name);
@@ -148,9 +148,9 @@ class Profiler {
     void lockAll();
     void unlockAll();
 
-    void dumpCollapsed(Writer& out, Arguments& args);
-    void dumpFlameGraph(Writer& out, Arguments& args, bool tree);
-    void dumpText(Writer& out, Arguments& args);
+    void __attribute__((instrument_function)) dumpCollapsed(Writer& out, Arguments& args);
+    void __attribute__((instrument_function)) dumpFlameGraph(Writer& out, Arguments& args, bool tree);
+    void __attribute__((instrument_function)) dumpText(Writer& out, Arguments& args);
 
     static Profiler* const _instance;
 
@@ -198,13 +198,13 @@ class Profiler {
     Error check(Arguments& args);
     Error start(Arguments& args, bool reset);
     Error stop(bool restart = false);
-    Error flushJfr();
-    Error dump(Writer& out, Arguments& args);
+    Error __attribute__((instrument_function)) flushJfr();
+    Error __attribute__((instrument_function)) dump(Writer& out, Arguments& args);
     void printUsedMemory(Writer& out);
     void logStats();
     void switchThreadEvents(jvmtiEventMode mode);
-    int convertNativeTrace(int native_frames, const void** callchain, ASGCT_CallFrame* frames, EventType event_type);
-    u64 recordSample(void* ucontext, u64 counter, EventType event_type, Event* event);
+    int __attribute__((instrument_function)) convertNativeTrace(int native_frames, const void** callchain, ASGCT_CallFrame* frames, EventType event_type);
+    u64 __attribute__((instrument_function)) recordSample(void* ucontext, u64 counter, EventType event_type, Event* event);
     void recordExternalSample(u64 counter, int tid, EventType event_type, Event* event, int num_frames, ASGCT_CallFrame* frames);
     void recordExternalSamples(u64 samples, u64 counter, int tid, u32 call_trace_id, EventType event_type, Event* event);
     void recordEventOnly(EventType event_type, Event* event);
