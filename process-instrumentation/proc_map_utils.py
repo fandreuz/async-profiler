@@ -9,7 +9,7 @@ import subprocess
 import re
 
 # Remove new lines, (...), line numbers, exceeding spaces
-_normalization_pattern = re.compile("(?:\n+|\\([^)]*\\)|:\\d+|\\s{2,})")
+_normalization_pattern = re.compile("(?:\n+|\\s{2,})")
 
 
 @dataclasses.dataclass(frozen=True)
