@@ -20,4 +20,4 @@ if [ -z "$JPID" ]; then exit 1; fi
 trap "kill -9 $JPID || true" EXIT
 kill -SIGTERM $JPID
 
-python3 -W ignore process-instrumentation/process.py $PROC_MAPS_FILE "traces*.txt" true > $OUTPUT_FILE
+python3 process-instrumentation/process_simple.py $PROC_MAPS_FILE "traces*.txt" > $OUTPUT_FILE
