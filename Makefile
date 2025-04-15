@@ -31,6 +31,7 @@ CXXFLAGS_EXTRA ?=
 CFLAGS=-O3 -fno-exceptions $(CFLAGS_EXTRA)
 CXXFLAGS=-O3 -fno-exceptions -fno-omit-frame-pointer -fvisibility=hidden -std=c++11 $(CXXFLAGS_EXTRA)
 CPPFLAGS=
+CPPFLAGS_TEST=-fprofile-arcs -ftest-coverage -fPIC -O0 --coverage
 DEFS=-DPROFILER_VERSION=\"$(PROFILER_VERSION)\"
 INCLUDES=-I$(JAVA_HOME)/include -Isrc/helper
 LIBS=-ldl -lpthread
@@ -191,9 +192,9 @@ build/test/cpptests: $(CPP_TEST_SOURCES) $(CPP_TEST_HEADER) $(SOURCES) $(HEADERS
 	mkdir -p build/test
 ifeq ($(MERGE),true)
 	for f in src/*.cpp test/native/*.cpp; do echo '#include "'$$f'"'; done |\
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEFS) $(INCLUDES) $(CPP_TEST_INCLUDES) -fPIC -o $@ -xc++ - $(LIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEFS) $(INCLUDES) $(CPP_TEST_INCLUDES) $(CPPFLAGS_TEST) -o $@ -xc++ - $(LIBS)
 else
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEFS) $(INCLUDES) $(CPP_TEST_INCLUDES) -fPIC -o $@ $(SOURCES) $(CPP_TEST_SOURCES) $(LIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEFS) $(INCLUDES) $(CPP_TEST_INCLUDES) $(CPPFLAGS_TEST) -o $@ $(SOURCES) $(CPP_TEST_SOURCES) $(LIBS)
 endif
 
 build-test-java: all build/$(TEST_JAR) build-test-libs build-test-bins
@@ -232,7 +233,7 @@ test-java: build-test-java
 
 coverage: override FAT_BINARY=false
 coverage: clean-coverage
-	$(MAKE) test-cpp CXXFLAGS_EXTRA="-fprofile-arcs -ftest-coverage -fPIC -O0 --coverage"
+coverage: test-cpp
 	mkdir -p build/test/coverage
 	cd build/test/ && gcovr -r ../.. --html-details --gcov-executable "$(GCOV)" -o coverage/index.html
 	rm -rf -- -.gc*
