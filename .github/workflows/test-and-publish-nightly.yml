@@ -61,7 +61,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: ${{ matrix.java-distribution }}
-          java-version: ${{ max(matrix.java-version, 11) }}
+          java-version: 11
           architecture: ${{ matrix.architecture }}
       - name: Checkout sources
         uses: actions/checkout@v4
