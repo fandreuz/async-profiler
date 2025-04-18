@@ -7,7 +7,7 @@ ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeou
 rm -f traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
 rm -rf build
 
-CXXFLAGS_EXTRA="-fplugin=/instrument-attribute-gcc-plugin/instrument_attribute.so -finstrument-functions -O0 -ggdb3"
+CXXFLAGS_EXTRA="-fplugin=./instrument-attribute-gcc-plugin/instrument_attribute.so -finstrument-functions -O0 -ggdb3"
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
