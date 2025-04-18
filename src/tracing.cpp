@@ -1,16 +1,79 @@
 #include "tsc.h"
-#include <pthread.h>
+#include <unordered_map>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
+#include <iostream>
 #include <unistd.h>
+#include <fstream>
+#include <sstream>
+#include <memory>
+#include <vector>
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static __thread FILE *fp;
-static FILE **fp_array;
-static int fp_array_next_idx = 0;
+struct ThreadNode;
+
+void dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node);
+
+struct ThreadNode {
+  std::unordered_map<void*, ThreadNode*> children;
+  ThreadNode* parent;
+  void* address;
+  u64 total_time;
+  u64 last_entry;
+
+  ThreadNode() : parent(nullptr) {}
+  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address) {} 
+  
+  ~ThreadNode() {
+    std::ostringstream filename;
+    filename << "thread" << gettid() << ".txt";
+
+    std::ofstream out(filename.str());
+    std::vector<void*> parents;
+    for (auto const & child : children) {
+      dfs(out, parents, child.second);
+    }
+    out.close();
+  }
+};
+
+void dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) {
+  parents.push_back(node->address);
+  for (auto const & child : node->children) {
+    dfs(out, parents, child.second);
+  }
+  parents.pop_back();
+
+  for (auto const & parent : parents) {
+    out << parent << ';';
+  }
+  out << node->address << ' ' << node->total_time << '\n';
+}
+
+thread_local std::unique_ptr<ThreadNode> root;
+thread_local ThreadNode* current;
+
+extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
+  if (!root) {
+    root = std::unique_ptr<ThreadNode>(new ThreadNode());
+    current = root.get();
+  }
+
+  auto it = current->children.find((void*) callee);
+  ThreadNode* next;
+  if (it == current->children.end()) {
+    next = new ThreadNode(current, (void*) callee);
+    current->children[(void*) callee] = next;
+    current = next;
+  } else {
+    current = it->second;
+  }
+  current->last_entry = rdtsc();
+}
+
+extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
+  current->total_time += (rdtsc() - current->last_entry);
+  current->last_entry = 0;
+  current = current->parent;
+}
 
 extern "C" __attribute__((constructor)) void tracing_constructor(void) {
   FILE *proc_maps_in = fopen("/proc/self/maps", "r");
@@ -37,49 +100,4 @@ extern "C" __attribute__((constructor)) void tracing_constructor(void) {
 
   fclose(proc_maps_in);
   fclose(proc_maps_out);
-}
-
-extern "C" __attribute__((destructor)) void tracing_deconstructor(void) {
-  pthread_mutex_lock(&mutex);
-  for (int i = 0; i < fp_array_next_idx; i++) {
-    fflush(fp_array[i]);
-    fclose(fp_array[i]);
-  }
-  free(fp_array);
-  pthread_mutex_unlock(&mutex);
-}
-
-extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
-  if (fp == NULL) {
-    pthread_mutex_lock(&mutex);
-
-    char buffer[50];
-    sprintf(buffer, "traces%d.txt", gettid());
-    // Truncate
-    fp = fopen(buffer, "w");
-    if (fp == NULL) {
-      fprintf(stderr, "Could not open file %s\n", buffer);
-      return;
-    }
-    fp = freopen(buffer, "a", fp);
-    if (fp == NULL) {
-      fprintf(stderr, "Could not reopen file %s\n", buffer);
-      return;
-    }
-
-    if (fp_array == NULL) {
-      fp_array = (FILE **)malloc(50 * sizeof(FILE *));
-    }
-    fp_array[fp_array_next_idx++] = fp;
-
-    pthread_mutex_unlock(&mutex);
-  }
-
-  u64 now = rdtsc();
-  fprintf(fp, "E,%llu,%p\n", now, (int *)callee);
-}
-
-extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
-  u64 now = rdtsc();
-  fprintf(fp, "X,%llu,%p\n", now, (int *)callee);
 }
