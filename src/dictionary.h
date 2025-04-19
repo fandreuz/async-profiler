@@ -43,7 +43,7 @@ class Dictionary {
 
     static unsigned int hash(const char* key, size_t length);
 
-    static void collect(std::map<unsigned int, const char*>& map, DictTable* table);
+    static void __attribute__((instrument_function)) collect(std::map<unsigned int, const char*>& map, DictTable* table);
 
   public:
     Dictionary();
@@ -55,7 +55,7 @@ class Dictionary {
     unsigned int lookup(const char* key);
     unsigned int lookup(const char* key, size_t length);
 
-    void collect(std::map<unsigned int, const char*>& map);
+    void __attribute__((instrument_function)) collect(std::map<unsigned int, const char*>& map);
 };
 
 #endif // _DICTIONARY_H
