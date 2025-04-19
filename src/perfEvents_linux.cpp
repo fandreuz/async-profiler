@@ -862,7 +862,7 @@ void PerfEvents::stop() {
     J9StackTraces::stop();
 }
 
-__attribute__((instrument_function)) int PerfEvents::walk(int tid, void* ucontext, const void** callchain, int max_depth, StackContext* java_ctx) {
+int PerfEvents::walk(int tid, void* ucontext, const void** callchain, int max_depth, StackContext* java_ctx) {
     PerfEvent* event = &_events[tid];
     if (!event->tryLock()) {
         return 0;  // the event is being destroyed

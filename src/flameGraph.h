@@ -86,9 +86,9 @@ class FlameGraph {
     u64 _last_x;
     u64 _last_total;
 
-    void __attribute__((instrument_function)) printFrame(Writer& out, u32 key, const Trie& f, int level, u64 x);
-    void __attribute__((instrument_function)) printTreeFrame(Writer& out, const Trie& f, int level, const char** names);
-    void __attribute__((instrument_function)) printCpool(Writer& out);
+    void printFrame(Writer& out, u32 key, const Trie& f, int level, u64 x);
+    void printTreeFrame(Writer& out, const Trie& f, int level, const char** names);
+    void printCpool(Writer& out);
     const char* printTill(Writer& out, const char* data, const char* till);
 
   public:
@@ -112,7 +112,7 @@ class FlameGraph {
 
     Trie* addChild(Trie* f, const char* name, FrameTypeId type, u64 value);
 
-    void __attribute__((instrument_function)) dump(Writer& out, bool tree);
+    void dump(Writer& out, bool tree);
 };
 
 #endif // _FLAMEGRAPH_H
