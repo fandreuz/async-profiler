@@ -26,4 +26,4 @@ if __name__ == "__main__":
             left_value = 0
             right_file_lineno += 1
 
-        print(f"{right_tree} {left_value} {right_value}")
+        print(f"{tree} {left_value} {right_value}")
