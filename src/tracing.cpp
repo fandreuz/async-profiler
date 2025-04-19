@@ -7,7 +7,14 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <pthread.h>
 
+void print_thread_name(std::ostream& out) {
+    char name[16]{};
+    if(pthread_getname_np(pthread_self(), name, sizeof(name)) == 0) {
+        out << "Thread name: " << name << std::endl;
+    }
+}
 
 struct ThreadNode;
 
@@ -29,6 +36,7 @@ struct ThreadNode {
     filename << "traces" << gettid() << ".txt";
 
     std::ofstream out(filename.str());
+    print_thread_name(out);
     std::vector<void*> parents;
     for (auto const & child : children) {
       dfs(out, parents, child.second);
