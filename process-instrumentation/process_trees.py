@@ -5,8 +5,8 @@ import pathlib
 import functools
 import itertools
 import typing
-from collections import defaultdict
 import json
+import dataclasses
 
 sys.path.append(str(pathlib.Path(__file__).parent))
 from proc_map_utils import (
@@ -16,6 +16,12 @@ from proc_map_utils import (
     ProcMap,
     keep_only_base_address,
 )
+
+@dataclasses.dataclass(frozen=True)
+class ParsedLine:
+    tree: str
+    value: int
+    count: int
 
 @functools.lru_cache(maxsize=100_000)
 def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]:
@@ -36,39 +42,42 @@ def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]
         function_name = None
     return function_name if function_name else address
 
-def _process_line(line: str, proc_map: ProcMap) -> tuple[str, typing.Numeric]:
+def _process_line(line: str, proc_map: ProcMap) -> ParsedLine:
     if "Thread:" in line:
-        return None, None
+        return None
     addrs = line.split(";")
 
     addrs[-1], value, count = addrs[-1].split(" ", maxsplit=3)
     names = []
     for addr in addrs:
         names.append(_find_function_name(addr, proc_map))
-    return ";".join(names), int(int(value) / int(count))
+    return ParsedLine(tree=";".join(names), value=int(value), count=int(count))
 
-def _process_path(path: pathlib.Path, proc_map: ProcMap) -> dict[str, typing.Numeric]:
+def _process_path(path: pathlib.Path, proc_map: ProcMap) -> dict[str, ParsedLine]:
     data: dict[str, typing.Numeric] = dict()
     with open(path) as file:
         for line in file:
-            tree, value = _process_line(
+            entry = _process_line(
                 line=line.strip(),
                 proc_map=proc_map,
             )
-            if not tree:
+            if not entry:
                 if "Compiler" in line:
                     break
             else:
-                data[tree] = value
+                data[entry.tree] = entry
     return data
 
 
-def _aggregate(old_roots: list[dict[str, typing.Numeric]]) -> dict[str, typing.Numeric]:
-    new_root: dict[str, typing.Numeric] = defaultdict(lambda: 0)
+def _aggregate(old_roots: list[dict[str, ParsedLine]]) -> dict[str, int]:
+    new_root: dict[str, ParsedLine] = dict()
     for root in old_roots:
         for name, total in root.items():
-            new_root[name] += total
-    return new_root
+            if name not in new_root:
+                new_root[name] = ParsedLine(name, 0, 0)
+            new_root[name] = ParsedLine(name, new_root[name].value + root[name].value, new_root[name].count + root[name].count)
+
+    return {name: entry.value / entry.count for name, entry in new_root.items()}
 
 if __name__ == "__main__":
     proc_map = keep_only_base_address(read_proc_map(sys.argv[1]))
