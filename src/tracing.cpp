@@ -1,3 +1,4 @@
+#include "tsc.h"
 #include <unordered_map>
 #include <stdint.h>
 #include <iostream>
@@ -6,7 +7,6 @@
 #include <sstream>
 #include <memory>
 #include <vector>
-#include <chrono>
 #include <pthread.h>
 
 void print_thread_name(std::ostream& out) {
@@ -18,15 +18,15 @@ void print_thread_name(std::ostream& out) {
 
 struct ThreadNode;
 
-ulong dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node);
+u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node);
 
 struct ThreadNode {
   std::unordered_map<void*, ThreadNode*> children;
   ThreadNode* parent;
   void* address;
-  std::chrono::duration<double> total_time;
-  std::chrono::steady_clock::time_point last_entry;
-  ulong count;
+  u64 total_time;
+  u64 last_entry;
+  u64 count;
 
   ThreadNode() : parent(nullptr) {
     std::cerr << "Initializing on thread: ";
@@ -57,8 +57,8 @@ struct ThreadNode {
   }
 };
 
-ulong dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) {
-  ulong children_time = 0;
+u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) {
+  u64 children_time = 0;
 
   parents.push_back(node->address);
   for (auto const & child : node->children) {
@@ -74,9 +74,8 @@ ulong dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node
     return 0;
   }
 
-  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(node->total_time).count();
-  out << node->address << ' ' << ns - children_time << ' ' << node->count << '\n';
-  return ns;
+  out << node->address << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
+  return node->total_time;
 }
 
 thread_local ThreadNode* current;
@@ -98,7 +97,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   } else {
     current = it->second;
   }
-  current->last_entry = std::chrono::steady_clock::now();
+  current->last_entry = rdtsc();
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
@@ -106,8 +105,7 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     std::cerr << "Unexpected callee " << callee << std::endl;
     return;
   }
-  auto diff = std::chrono::steady_clock::now() - current->last_entry;
-  current->total_time += diff;
+  current->total_time += rdtsc() - current->last_entry;
   current->count++;
   current = current->parent;
 }
