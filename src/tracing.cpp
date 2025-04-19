@@ -24,7 +24,7 @@ struct ThreadNode {
   
   ~ThreadNode() {
     std::ostringstream filename;
-    filename << "thread" << gettid() << ".txt";
+    filename << "traces" << gettid() << ".txt";
 
     std::ofstream out(filename.str());
     std::vector<void*> parents;
