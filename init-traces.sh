@@ -15,4 +15,4 @@ javac MyMain.java
 PROC_MAPS_COPY_PATH=$PROC_MAPS_FILE java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err &
 sleep $((5 + $WAIT_TIME_S))
 
-python3 process-instrumentation/process_trees.py $PROC_MAPS_FILE "traces*.txt" > $OUTPUT_FILE
+python3 process-instrumentation/process_trees.py $PROC_MAPS_FILE "traces*.txt" false > $OUTPUT_FILE

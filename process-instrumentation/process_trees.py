@@ -66,7 +66,7 @@ def _process_path(path: pathlib.Path, proc_map: ProcMap) -> dict[str, ParsedLine
     return data
 
 
-def _aggregate(old_roots: list[dict[str, ParsedLine]]) -> dict[str, int]:
+def _aggregate(old_roots: list[dict[str, ParsedLine]], normalize: bool) -> dict[str, int]:
     new_root: dict[str, ParsedLine] = dict()
     for root in old_roots:
         for name, total in root.items():
@@ -74,14 +74,17 @@ def _aggregate(old_roots: list[dict[str, ParsedLine]]) -> dict[str, int]:
                 new_root[name] = ParsedLine(name, 0, 0)
             new_root[name] = ParsedLine(name, new_root[name].value + root[name].value, new_root[name].count + root[name].count)
 
-    return {name: entry.value / entry.count for name, entry in new_root.items()}
+    if normalize:
+        return {name: entry.value / entry.count for name, entry in new_root.items()}
+    else:
+        return {name: entry.value for name, entry in new_root.items()}
 
 if __name__ == "__main__":
     proc_map = keep_only_base_address(read_proc_map(sys.argv[1]))
     paths = tuple(pathlib.Path(".").glob(sys.argv[2]))
 
     roots = itertools.starmap(_process_path, ((p, proc_map) for p in paths))
-    root = _aggregate(old_roots=roots)
+    root = _aggregate(old_roots=roots, normalize=sys.argv[3] != "false")
     output = []
     for tree, value in root.items():
         output.append(f"{tree} {value}")
