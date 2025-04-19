@@ -81,7 +81,8 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     std::cerr << "Unexpected callee " << callee << std::endl;
     return;
   }
-  current->total_time += (std::chrono::steady_clock::now() - current->last_entry);
+  auto diff = std::chrono::steady_clock::now() - current->last_entry;
+  current->total_time += diff;
   current->count++;
   current = current->parent;
 }
