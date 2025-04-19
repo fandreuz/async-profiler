@@ -74,9 +74,6 @@ u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) 
     return 0;
   }
 
-  if (node->total_time - children_time > 10000000) {
-    std::cerr << "During dump found: " << node->total_time << ", child: " << children_time << " -> " << node->total_time - children_time << std::endl;
-  }
   out << node->address << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
   return node->total_time;
 }
@@ -101,9 +98,6 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     current = it->second;
   }
   current->last_entry = rdtsc();
-  if (current->last_entry == 0) {
-    std::cerr << "rtdsc is zero for " << callee << std::endl;
-  }
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
@@ -111,12 +105,7 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
     std::cerr << "Unexpected callee " << callee << std::endl;
     return;
   }
-  u64 now = rdtsc();
-  u64 diff = now - current->last_entry;
-  if (diff > 10000000) {
-    std::cerr << "now: " << now << ", start: " << current->last_entry << ", diff: " << diff << std::endl;
-  }
-  current->total_time += diff;
+  current->total_time += rdtsc() - current->last_entry;
   current->count++;
   current = current->parent;
 }
