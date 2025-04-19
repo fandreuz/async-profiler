@@ -74,6 +74,10 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
+  if (current->address != callee) {
+    std::cerr << "Unexpected callee " << callee << std::endl;
+    return;
+  }
   current->total_time += (rdtsc() - current->last_entry);
   current->last_entry = 0;
   current->count++;
