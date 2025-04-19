@@ -96,7 +96,7 @@ class Element {
     static std::map<std::string, int> _string_map;
     static std::vector<std::string> _strings;
 
-    static __attribute__((instrument_function)) int getId(const char* s) {
+    static int getId(const char* s) {
         std::string str(s);
         int id = _string_map[str];
         if (id == 0) {

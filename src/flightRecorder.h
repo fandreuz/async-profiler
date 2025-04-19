@@ -26,7 +26,7 @@ class FlightRecorder {
 
     Error start(Arguments& args, bool reset);
     void stop();
-    __attribute__((instrument_function)) void flush();
+    void flush();
     size_t usedMemory();
     bool timerTick(u64 wall_time, u32 gc_id);
 
@@ -34,10 +34,10 @@ class FlightRecorder {
         return _rec != NULL;
     }
 
-    __attribute__((instrument_function)) void recordEvent(int lock_index, int tid, u32 call_trace_id,
+    void recordEvent(int lock_index, int tid, u32 call_trace_id,
                      EventType event_type, Event* event);
 
-    __attribute__((instrument_function)) void recordLog(LogLevel level, const char* message, size_t len);
+    void recordLog(LogLevel level, const char* message, size_t len);
 };
 
 #endif // _FLIGHTRECORDER_H

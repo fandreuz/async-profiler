@@ -37,7 +37,7 @@ class J9StackTraces {
         return NULL;
     }
 
-    static void __attribute__((instrument_function)) timerLoop();
+    static void timerLoop();
 
   public:
     static Error start(Arguments& args);
