@@ -14,10 +14,4 @@ javac MyMain.java
 PROC_MAPS_COPY_PATH=$PROC_MAPS_FILE java $ASPROF_CMD MyMain > /dev/null 2> ${OUTPUT_FILE}.err &
 sleep 20
 
-JPID=$(jps | grep MyMain | awk '{print $1}')
-if [ -z "$JPID" ]; then exit 1; fi
-
-trap "kill -9 $JPID || true" EXIT
-kill -SIGTERM $JPID
-
 python3 process-instrumentation/process_trees.py $PROC_MAPS_FILE "traces*.txt" > $OUTPUT_FILE
