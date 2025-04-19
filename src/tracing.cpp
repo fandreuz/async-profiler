@@ -58,6 +58,10 @@ ulong dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node
     out << parent << ';';
   }
 
+  if (node->count == 0) {
+    return 0;
+  }
+
   auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(node->total_time).count();
   out << node->address << ' ' << ns - children_time << ' ' << node->count << '\n';
   return ns;
