@@ -61,10 +61,7 @@ def _process_path(path: pathlib.Path, proc_map: ProcMap) -> dict[str, ParsedLine
                 line=line.strip(),
                 proc_map=proc_map,
             )
-            if not entry:
-                if "Compiler" in line:
-                    break
-            else:
+            if entry:
                 data[entry.tree] = entry
     return data
 
