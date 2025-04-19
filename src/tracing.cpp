@@ -18,6 +18,7 @@ struct ThreadNode {
   void* address;
   u64 total_time;
   u64 last_entry;
+  u64 count;
 
   ThreadNode() : parent(nullptr) {}
   ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address) {} 
@@ -48,7 +49,7 @@ void dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node)
   for (auto const & parent : parents) {
     out << parent << ';';
   }
-  out << node->address << ' ' << node->total_time - children_time << '\n';
+  out << node->address << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
 }
 
 thread_local std::unique_ptr<ThreadNode> root;
@@ -75,6 +76,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   current->total_time += (rdtsc() - current->last_entry);
   current->last_entry = 0;
+  current->count++;
   current = current->parent;
 }
 
