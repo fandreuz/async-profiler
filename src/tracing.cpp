@@ -12,7 +12,7 @@
 void print_thread_name(std::ostream& out) {
     char name[16]{};
     if(pthread_getname_np(pthread_self(), name, sizeof(name)) == 0) {
-        out << "Thread name: " << name << std::endl;
+        out << name;
     }
 }
 
@@ -28,15 +28,27 @@ struct ThreadNode {
   std::chrono::steady_clock::time_point last_entry;
   ulong count;
 
-  ThreadNode() : parent(nullptr) {}
-  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address) {} 
+  ThreadNode() : parent(nullptr) {
+    std::cerr << "Initializing on thread: ";
+    print_thread_name(std::cerr);
+    std::cerr << std::endl;
+  }
+  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address) {}
   
   ~ThreadNode() {
+    std::cerr << "Destroying on thread: ";
+    print_thread_name(std::cerr);
+    std::cerr << std::endl;
+
     std::ostringstream filename;
     filename << "traces" << gettid() << ".txt";
 
     std::ofstream out(filename.str());
+
+    out << "Thread: ";
     print_thread_name(out);
+    out << std::endl;
+
     std::vector<void*> parents;
     for (auto const & child : children) {
       dfs(out, parents, child.second);
@@ -67,14 +79,15 @@ ulong dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node
   return ns;
 }
 
-thread_local std::unique_ptr<ThreadNode> root;
 thread_local ThreadNode* current;
+thread_local std::unique_ptr<ThreadNode> root = []{
+  auto ptr = std::unique_ptr<ThreadNode>(new ThreadNode());
+  current = ptr.get();
+  return std::move(ptr);
+}();
 
 extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
-  if (!root) {
-    root = std::unique_ptr<ThreadNode>(new ThreadNode());
-    current = root.get();
-  }
+  (void)root;
 
   auto it = current->children.find((void*) callee);
   ThreadNode* next;
