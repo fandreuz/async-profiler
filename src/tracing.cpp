@@ -28,12 +28,12 @@ struct ThreadNode {
   u64 last_entry;
   u64 count;
 
-  ThreadNode() : parent(nullptr) {
+  ThreadNode() : parent(nullptr), address(nullptr), total_time(0), last_entry(0), count(0) {
     std::cerr << "Initializing on thread: ";
     print_thread_name(std::cerr);
     std::cerr << std::endl;
   }
-  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address) {}
+  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address), total_time(0), last_entry(0), count(0) {}
   
   ~ThreadNode() {
     std::cerr << "Destroying on thread: ";
