@@ -215,10 +215,10 @@ class Profiler {
     void updateSymbols(bool kernel_symbols);
     const void* resolveSymbol(const char* name);
     const char* getLibraryName(const char* native_symbol);
-    CodeCache* findJvmLibrary(const char* lib_name);
-    CodeCache* findLibraryByName(const char* lib_name);
-    CodeCache* findLibraryByAddress(const void* address);
-    const char* __attribute__((instrument_function)) findNativeMethod(const void* address);
+    __attribute__((instrument_function)) CodeCache* findJvmLibrary(const char* lib_name);
+    __attribute__((instrument_function)) CodeCache* findLibraryByName(const char* lib_name);
+    __attribute__((instrument_function)) CodeCache* findLibraryByAddress(const void* address);
+    __attribute__((instrument_function)) const char* __attribute__((instrument_function)) findNativeMethod(const void* address);
     CodeBlob* findRuntimeStub(const void* address);
     bool isAddressInCode(const void* pc);
 
