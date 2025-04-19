@@ -36,16 +36,19 @@ struct ThreadNode {
 };
 
 void dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) {
+  u64 children_time = 0;
+
   parents.push_back(node->address);
   for (auto const & child : node->children) {
     dfs(out, parents, child.second);
+    children_time += child.second->total_time;
   }
   parents.pop_back();
 
   for (auto const & parent : parents) {
     out << parent << ';';
   }
-  out << node->address << ' ' << node->total_time << '\n';
+  out << node->address << ' ' << node->total_time - children_time << '\n';
 }
 
 thread_local std::unique_ptr<ThreadNode> root;
