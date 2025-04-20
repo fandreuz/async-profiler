@@ -11,8 +11,7 @@ CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
-java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err &
-sleep $((5 + $WAIT_TIME_S))
+java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err
 
 python3 process-instrumentation/process_trees.py "traces*.txt" false | \
     grep -v "Profiler::timerLoop " | \
