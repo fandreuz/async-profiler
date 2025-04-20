@@ -4,6 +4,7 @@ OUTPUT_FILE=${OUTPUT_FILE:-processed_traces.txt}
 ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeout=10,collapsed,file=/dev/null,event=cpu,interval=10ms}
 WAIT_TIME_S=${WAIT_TIME_S:-20}
 THREADS_COUNT=${THREADS_COUNT:-5}
+SAMPLES_COUNT_FILE=${SAMPLES_COUNT_FILE:-samples_count.txt}
 
 rm -rf build traces*.txt $OUTPUT_FILE $OUTPUT_FILE.err
 
@@ -18,6 +19,7 @@ if [ $samples_count -lt 100 ]; then
     echo "Low count for recordSample: $samples_count"
     exit 1
 fi
+echo $samples_count > $SAMPLES_COUNT_FILE
 
 python3 process-instrumentation/process_trees.py "traces*.txt" false | \
     grep -v "Profiler::timerLoop " | \
