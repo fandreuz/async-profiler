@@ -1,4 +1,5 @@
 #include "tsc.h"
+#include "profiler.h"
 #include <unordered_map>
 #include <stdint.h>
 #include <iostream>
@@ -18,7 +19,7 @@ void print_thread_name(std::ostream& out) {
 
 struct ThreadNode;
 
-u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node);
+u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode* node);
 
 struct ThreadNode {
   std::unordered_map<void*, ThreadNode*> children;
@@ -41,7 +42,7 @@ struct ThreadNode {
     print_thread_name(out);
     out << std::endl;
 
-    std::vector<void*> parents;
+    std::vector<const char*> parents;
     for (auto const & child : children) {
       dfs(out, parents, child.second);
     }
@@ -49,10 +50,25 @@ struct ThreadNode {
   }
 };
 
-u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) {
-  u64 children_time = 0;
+char* get_function_name(void *address, bool *free_later) {
+  const char* function_name = Profiler::instance()->findNativeMethod(address);
+  if (Demangle::needsDemangling(function_name)) {
+      char* demangled = Demangle::demangle(function_name, false);
+      if (demangled != NULL) {
+          *free_later = true;
+          return demangled;
+      }
+  }
+  *free_later = false;
+  return const_cast<char*>(function_name);
+}
 
-  parents.push_back(node->address);
+u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode* node) {
+  bool free_later;
+  char* function_name = get_function_name(node->address, &free_later);
+  parents.push_back(function_name);
+
+  u64 children_time = 0;
   for (auto const & child : node->children) {
     children_time += dfs(out, parents, child.second);
   }
@@ -66,7 +82,12 @@ u64 dfs(std::ostream& out, std::vector<void*>& parents, const ThreadNode* node) 
     return 0;
   }
 
-  out << node->address << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
+  out << function_name << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
+
+  if (free_later) {
+    free(function_name);
+  }
+
   return node->total_time;
 }
 
