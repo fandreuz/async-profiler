@@ -76,7 +76,7 @@ class FrameName {
     FrameName(Arguments& args, int style, int epoch, Mutex& thread_names_lock, ThreadMap& thread_names);
     ~FrameName();
 
-    const char* __attribute__((instrument_function)) name(ASGCT_CallFrame& frame, bool for_matching = false);
+    const char* name(ASGCT_CallFrame& frame, bool for_matching = false);
     FrameTypeId type(ASGCT_CallFrame& frame);
 
     bool hasIncludeList() { return !_include.empty(); }

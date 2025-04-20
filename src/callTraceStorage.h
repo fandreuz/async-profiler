@@ -50,8 +50,8 @@ class CallTraceStorage {
     u64 _overflow;
 
     u64 calcHash(int num_frames, ASGCT_CallFrame* frames);
-    CallTrace* __attribute__((instrument_function)) storeCallTrace(int num_frames, ASGCT_CallFrame* frames);
-    CallTrace* __attribute__((instrument_function)) findCallTrace(LongHashTable* table, u64 hash);
+    CallTrace* storeCallTrace(int num_frames, ASGCT_CallFrame* frames);
+    CallTrace* findCallTrace(LongHashTable* table, u64 hash);
 
   public:
     CallTraceStorage();
@@ -61,12 +61,12 @@ class CallTraceStorage {
     u32 capacity();
     size_t usedMemory();
 
-    void __attribute__((instrument_function)) collectTraces(std::map<u32, CallTrace*>& map);
-    void __attribute__((instrument_function)) collectSamples(std::vector<CallTraceSample*>& samples);
-    void __attribute__((instrument_function)) collectSamples(std::map<u64, CallTraceSample>& map);
+    void collectTraces(std::map<u32, CallTrace*>& map);
+    void collectSamples(std::vector<CallTraceSample*>& samples);
+    void collectSamples(std::map<u64, CallTraceSample>& map);
 
-    u32 __attribute__((instrument_function)) put(int num_frames, ASGCT_CallFrame* frames, u64 counter);
-    void __attribute__((instrument_function)) add(u32 call_trace_id, u64 samples, u64 counter);
+    u32 put(int num_frames, ASGCT_CallFrame* frames, u64 counter);
+    void add(u32 call_trace_id, u64 samples, u64 counter);
     void resetCounters();
 };
 
