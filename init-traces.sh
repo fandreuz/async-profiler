@@ -12,7 +12,7 @@ CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
-java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err
+timeout $(($WAIT_TIME_S + 5)) java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err
 
 samples_count=$(grep "recordSample " traces*.txt | awk '{print $NF}' | awk '{s+=$1} END {print s}' )
 if [ $samples_count -lt 100 ]; then
