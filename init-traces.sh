@@ -8,7 +8,7 @@ THREADS_COUNT=${THREADS_COUNT:-5}
 
 rm -rf build traces*.txt $PROC_MAPS_FILE $OUTPUT_FILE
 
-CXXFLAGS_EXTRA="-fplugin=./instrument-attribute-gcc-plugin/instrument_attribute.so -finstrument-functions -O0 -ggdb3"
+CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,/usr/lib,/usr/include,stl_tree,strl_map,stl_vector -O0 -ggdb3"
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
