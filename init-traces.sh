@@ -15,4 +15,8 @@ javac MyMain.java
 PROC_MAPS_COPY_PATH=$PROC_MAPS_FILE java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err &
 sleep $((5 + $WAIT_TIME_S))
 
-python3 process-instrumentation/process_trees.py $PROC_MAPS_FILE "traces*.txt" false > $OUTPUT_FILE
+python3 process-instrumentation/process_trees.py $PROC_MAPS_FILE "traces*.txt" false | \
+    grep -v "Profiler::timerLoop/workspaces/async-profiler/src/profiler.cpp " | \
+    grep -v "Profiler::jvmtiTimerEntry/workspaces/async-profiler/src/profiler.h " | \
+    grep -v "WaitableMutex::waitUntil/workspaces/async-profiler/src/mutex.cpp " \
+    > $OUTPUT_FILE
