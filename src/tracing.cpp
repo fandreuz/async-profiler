@@ -10,6 +10,8 @@
 #include <vector>
 #include <pthread.h>
 
+thread_local bool enabled = true;
+
 void print_thread_name(std::ostream& out) {
     char name[16]{};
     if(pthread_getname_np(pthread_self(), name, sizeof(name)) == 0) {
@@ -33,6 +35,8 @@ struct ThreadNode {
   ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address), total_time(0), last_entry(0), count(0) {}
   
   ~ThreadNode() {
+    enabled = false;
+
     std::ostringstream filename;
     filename << "traces" << gettid() << ".txt";
 
@@ -101,6 +105,10 @@ thread_local std::unique_ptr<ThreadNode> root = []{
 extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
   (void)root;
 
+  if (!enabled) {
+    return;
+  }
+
   auto it = current->children.find((void*) callee);
   ThreadNode* next;
   if (it == current->children.end()) {
@@ -114,6 +122,9 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
+  if (!enabled) {
+    return;
+  }
   if (current->address != callee) {
     std::cerr << "Unexpected callee " << callee << std::endl;
     return;
