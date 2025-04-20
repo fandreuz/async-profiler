@@ -122,30 +122,3 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   current->count++;
   current = current->parent;
 }
-
-extern "C" __attribute__((constructor)) void tracing_constructor(void) {
-  FILE *proc_maps_in = fopen("/proc/self/maps", "r");
-  if (proc_maps_in == NULL) {
-    fprintf(stderr, "Could not open /proc/self/maps\n");
-    return;
-  }
-
-  const char *proc_maps_out_name = getenv("PROC_MAPS_COPY_PATH");
-  FILE *proc_maps_out = fopen(proc_maps_out_name, "w");
-  if (proc_maps_out == NULL) {
-    fprintf(stderr, "Could not open '%s'\n", proc_maps_out_name);
-    return;
-  }
-
-  char buffer[1024];
-  size_t read_chars;
-  while ((read_chars = fread(buffer, sizeof(char), 1024, proc_maps_in)) > 0) {
-    if (fwrite(buffer, sizeof(char), read_chars, proc_maps_out) != read_chars) {
-      fprintf(stderr, "An error occurred\n");
-      break;
-    }
-  }
-
-  fclose(proc_maps_in);
-  fclose(proc_maps_out);
-}
