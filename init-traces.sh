@@ -13,7 +13,7 @@ javac MyMain.java
 
 java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err
 
-python3 process-instrumentation/process_trees.py "traces*.txt" false | \
+python3 process-instrumentation/process_trees.py "traces*.txt" true | \
     grep -v "Profiler::timerLoop " | \
     grep -v "Profiler::jvmtiTimerEntry " | \
     grep -v "WaitableMutex::waitUntil " \
