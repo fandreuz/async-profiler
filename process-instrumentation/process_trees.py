@@ -2,20 +2,9 @@ from __future__ import annotations
 
 import sys
 import pathlib
-import functools
-import itertools
 import typing
 import json
 import dataclasses
-
-sys.path.append(str(pathlib.Path(__file__).parent))
-from proc_map_utils import (
-    find_lib_load_location,
-    read_proc_map,
-    find_function_name,
-    ProcMap,
-    keep_only_base_address,
-)
 
 @dataclasses.dataclass(frozen=True)
 class ParsedLine:
@@ -23,43 +12,18 @@ class ParsedLine:
     value: int
     count: int
 
-@functools.lru_cache(maxsize=100_000)
-def _find_function_name(address: str, proc_map: ProcMap) -> typing.Optional[str]:
-    address_int = int(address, base=16)
-    load_location = find_lib_load_location(address=address_int, proc_map=proc_map)
-    if load_location is None:
-        return address
-
-    shifted_address = address_int - load_location.address_start
-    if shifted_address < 0:
-        raise ValueError(f"{load_location}, {address}")
-
-    try:
-        function_name = find_function_name(
-            address=shifted_address, lib_path=load_location.lib_path
-        )
-    except:
-        function_name = None
-    return function_name if function_name else address
-
-def _process_line(line: str, proc_map: ProcMap) -> ParsedLine:
+def _process_line(line: str) -> ParsedLine:
     if "Thread:" in line:
         return None
-    addrs = line.split(";")
+    names, value, count = line.rsplit(" ", maxsplit=2)
+    return ParsedLine(tree=names, value=int(value), count=int(count))
 
-    addrs[-1], value, count = addrs[-1].split(" ", maxsplit=3)
-    names = []
-    for addr in addrs:
-        names.append(_find_function_name(addr, proc_map))
-    return ParsedLine(tree=";".join(names), value=int(value), count=int(count))
-
-def _process_path(path: pathlib.Path, proc_map: ProcMap) -> dict[str, ParsedLine]:
+def _process_path(path: pathlib.Path) -> dict[str, ParsedLine]:
     data: dict[str, typing.Numeric] = dict()
     with open(path) as file:
         for line in file:
             entry = _process_line(
                 line=line.strip(),
-                proc_map=proc_map,
             )
             if entry:
                 data[entry.tree] = entry
@@ -80,10 +44,7 @@ def _aggregate(old_roots: list[dict[str, ParsedLine]], normalize: bool) -> dict[
         return {name: entry.value for name, entry in new_root.items()}
 
 if __name__ == "__main__":
-    proc_map = keep_only_base_address(read_proc_map(sys.argv[1]))
-    paths = tuple(pathlib.Path(".").glob(sys.argv[2]))
-
-    roots = itertools.starmap(_process_path, ((p, proc_map) for p in paths))
+    roots = map(_process_path, pathlib.Path(".").glob(sys.argv[2]))
     root = _aggregate(old_roots=roots, normalize=sys.argv[3] != "false")
     output = []
     for tree, value in root.items():
