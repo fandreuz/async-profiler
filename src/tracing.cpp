@@ -21,10 +21,10 @@ void print_thread_name(std::ostream& out) {
 
 struct ThreadNode;
 
-u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode* node);
+u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode& node);
 
 struct ThreadNode {
-  std::unordered_map<void*, ThreadNode*> children;
+  std::unordered_map<void*, ThreadNode> children;
   ThreadNode* parent;
   void* address;
   u64 total_time;
@@ -35,6 +35,11 @@ struct ThreadNode {
   ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address), total_time(0), last_entry(0), count(0) {}
   
   ~ThreadNode() {
+    // Start DFS only if I'm root
+    if (address != nullptr) {
+      return;
+    }
+
     enabled = false;
 
     std::ostringstream filename;
@@ -67,13 +72,13 @@ char* get_function_name(void *address, bool *free_later) {
   return const_cast<char*>(function_name);
 }
 
-u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode* node) {
+u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode& node) {
   bool free_later;
-  char* function_name = get_function_name(node->address, &free_later);
+  char* function_name = get_function_name(node.address, &free_later);
   parents.push_back(function_name);
 
   u64 children_time = 0;
-  for (auto const & child : node->children) {
+  for (auto const & child : node.children) {
     children_time += dfs(out, parents, child.second);
   }
   parents.pop_back();
@@ -82,17 +87,17 @@ u64 dfs(std::ostream& out, std::vector<const char*>& parents, const ThreadNode* 
     out << parent << ';';
   }
 
-  if (node->count == 0) {
+  if (node.count == 0) {
     return 0;
   }
 
-  out << function_name << ' ' << node->total_time - children_time << ' ' << node->count << '\n';
+  out << function_name << ' ' << node.total_time - children_time << ' ' << node.count << '\n';
 
   if (free_later) {
     free(function_name);
   }
 
-  return node->total_time;
+  return node.total_time;
 }
 
 thread_local ThreadNode* current;
@@ -109,22 +114,14 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     return;
   }
 
-  auto it = current->children.find((void*) callee);
-  ThreadNode* next;
-  if (it == current->children.end()) {
-    next = new ThreadNode(current, (void*) callee);
-    current->children[(void*) callee] = next;
-    current = next;
-  } else {
-    current = it->second;
-  }
-  current->last_entry = rdtsc();
+  (current = &current->children.try_emplace(callee, current, callee).first->second)->last_entry = rdtsc();
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   if (!enabled) {
     return;
   }
+
   if (current->address != callee) {
     std::cerr << "Unexpected callee " << callee << std::endl;
     return;

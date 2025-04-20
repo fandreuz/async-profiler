@@ -8,7 +8,7 @@ SAMPLES_COUNT_FILE=${SAMPLES_COUNT_FILE:-samples_count.txt}
 
 rm -rf build traces*.txt $OUTPUT_FILE $OUTPUT_FILE.err
 
-CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,src/tsc.h,/usr/lib,/usr/include -O0 -ggdb3"
+CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,src/tsc.h,/usr/lib,/usr/include -Og -ggdb3 -std=c++17"
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
 javac MyMain.java
 
