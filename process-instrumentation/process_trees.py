@@ -44,8 +44,8 @@ def _aggregate(old_roots: list[dict[str, ParsedLine]], normalize: bool) -> dict[
         return {name: entry.value for name, entry in new_root.items()}
 
 if __name__ == "__main__":
-    roots = map(_process_path, pathlib.Path(".").glob(sys.argv[2]))
-    root = _aggregate(old_roots=roots, normalize=sys.argv[3] != "false")
+    roots = map(_process_path, pathlib.Path(".").glob(sys.argv[1]))
+    root = _aggregate(old_roots=roots, normalize=sys.argv[2] != "false")
     output = []
     for tree, value in root.items():
         output.append(f"{tree} {value}")
