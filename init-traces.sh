@@ -5,7 +5,7 @@ ASPROF_CMD=${ASPROF_CMD:--agentpath:./build/lib/libasyncProfiler.so=start,timeou
 WAIT_TIME_S=${WAIT_TIME_S:-20}
 THREADS_COUNT=${THREADS_COUNT:-5}
 
-rm -rf build traces*.txt $OUTPUT_FILE
+rm -rf build traces*.txt $OUTPUT_FILE $OUTPUT_FILE.err
 
 CXXFLAGS_EXTRA="-finstrument-functions -finstrument-functions-exclude-file-list=src/tracing.cpp,src/tsc.h,/usr/lib,/usr/include -O0 -ggdb3"
 make -j CXXFLAGS_EXTRA="$CXXFLAGS_EXTRA"
@@ -13,7 +13,13 @@ javac MyMain.java
 
 java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE}.err
 
-python3 process-instrumentation/process_trees.py "traces*.txt" true | \
+samples_count=$(grep "recordSample " traces*.txt | awk '{print $NF}' | awk '{s+=$1} END {print s}' )
+if [ $samples_count -lt 100 ]; then
+    echo "Low count for recordSample: $samples_count"
+    exit 1
+fi
+
+python3 process-instrumentation/process_trees.py "traces*.txt" false | \
     grep -v "Profiler::timerLoop " | \
     grep -v "Profiler::jvmtiTimerEntry " | \
     grep -v "WaitableMutex::waitUntil " \
