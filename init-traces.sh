@@ -15,7 +15,7 @@ java $ASPROF_CMD MyMain $THREADS_COUNT $WAIT_TIME_S > /dev/null 2> ${OUTPUT_FILE
 sleep $((5 + $WAIT_TIME_S))
 
 python3 process-instrumentation/process_trees.py "traces*.txt" false | \
-    grep -v "Profiler::timerLoop/workspaces/async-profiler/src/profiler.cpp " | \
-    grep -v "Profiler::jvmtiTimerEntry/workspaces/async-profiler/src/profiler.h " | \
-    grep -v "WaitableMutex::waitUntil/workspaces/async-profiler/src/mutex.cpp " \
+    grep -v "Profiler::timerLoop " | \
+    grep -v "Profiler::jvmtiTimerEntry " | \
+    grep -v "WaitableMutex::waitUntil " \
     > $OUTPUT_FILE
