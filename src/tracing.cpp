@@ -123,9 +123,19 @@ extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
   }
 
   if (current->address != callee) {
-    std::cerr << "Unexpected callee " << callee << std::endl;
+    bool free_later;
+
+    auto name = get_function_name(caller, &free_later);
+    std::cerr << "Unexpected: " << name << " -> ";
+    if (free_later) free(name);
+
+    name = get_function_name(caller, &free_later);
+    std::cerr << name << std::endl;
+    if (free_later) free(name);
+
     return;
   }
+
   current->total_time += rdtsc() - current->last_entry;
   current->count++;
   current = current->parent;
