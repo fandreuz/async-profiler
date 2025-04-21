@@ -10,9 +10,6 @@
 #include <vector>
 #include <pthread.h>
 
-#define MAPS_COUNT 10000
-#define MAPS_INITIAL_CAPACITY 10
-
 thread_local bool enabled = true;
 
 void print_thread_name(std::ostream& out) {
@@ -24,25 +21,16 @@ void print_thread_name(std::ostream& out) {
 
 struct ThreadNode;
 
-thread_local std::unordered_map<void*, ThreadNode>* arena = []{
-  auto maps = new std::unordered_map<void*, ThreadNode>[MAPS_COUNT];
-  for (int i = 0; i < MAPS_COUNT; ++i) {
-    maps[i].reserve(MAPS_INITIAL_CAPACITY);
-  }
-  return maps;
-}();
-thread_local int map_idx = -1;
-
 struct ThreadNode {
-  std::unordered_map<void*, ThreadNode>* children;
+  std::unordered_map<void*, ThreadNode> children;
   ThreadNode* parent;
   void* address;
   u64 total_time;
   u64 last_entry;
   u64 count;
 
-  ThreadNode() : children(arena + ++map_idx), parent(nullptr), address(nullptr), total_time(0), last_entry(0), count(0) {}
-  ThreadNode(ThreadNode* parent, void* address) : children(arena + ++map_idx), parent(parent), address(address), total_time(0), last_entry(0), count(0) {}
+  ThreadNode() : parent(nullptr), address(nullptr), total_time(0), last_entry(0), count(0) {}
+  ThreadNode(ThreadNode* parent, void* address) : parent(parent), address(address), total_time(0), last_entry(0), count(0) {}
 
   u64 dfs(std::ostream& out, std::vector<const char*>& parents) const;
   
@@ -64,7 +52,7 @@ struct ThreadNode {
     out << std::endl;
 
     std::vector<const char*> parents;
-    for (auto const & child : *children) {
+    for (auto const & child : children) {
       child.second.dfs(out, parents);
     }
     out.close();
@@ -90,7 +78,7 @@ u64 ThreadNode::dfs(std::ostream& out, std::vector<const char*>& parents) const 
   parents.push_back(function_name);
 
   u64 children_time = 0;
-  for (auto const & child : *children) {
+  for (auto const & child : children) {
     children_time += child.second.dfs(out, parents);
   }
   parents.pop_back();
@@ -126,7 +114,7 @@ extern "C" void __cyg_profile_func_enter(void *callee, void *caller) {
     return;
   }
 
-  (current = &current->children->try_emplace(callee, current, callee).first->second)->last_entry = rdtsc();
+  (current = &current->children.try_emplace(callee, current, callee).first->second)->last_entry = rdtsc();
 }
 
 extern "C" void __cyg_profile_func_exit(void *callee, void *caller) {
