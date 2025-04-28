@@ -41,7 +41,7 @@ jobs:
       - name: Echo path
         run: |
           echo $PATH
-          which node
+          node --version
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
