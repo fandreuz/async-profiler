@@ -153,7 +153,7 @@ jobs:
     runs-on: ${{ matrix.runson.name }}
     container:
       image: ${{ matrix.image }}
-      options: --privileged
+      options: --privileged --security-opt seccomp=unconfined --cap-add SYS_ADMIN --sysctl kernel.perf_event_paranoid=1
       volumes: ${{ fromJSON(matrix.volumes || '[]') }}
     name: "Integration test (${{ matrix.runson.display }}, ${{ matrix.java-distribution }} ${{ matrix.java-version }})"
     steps:
@@ -201,11 +201,6 @@ jobs:
           esac
           echo "jars_directory=jar_artifacts" >> $GITHUB_OUTPUT
           echo "release_directory=$(basename $(find . -type d -iname "async-profiler-*" ))" >> $GITHUB_OUTPUT
-      - name: Enable perf event paranoid kernel flag
-        if: ${{ !startsWith(matrix.runson.display, 'macos') }}
-        run: |
-          sysctl kernel.perf_event_paranoid=1
-          sysctl kernel.kptr_restrict=0
       - name: Run integration tests
         run: |
 
