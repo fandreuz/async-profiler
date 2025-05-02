@@ -16,6 +16,11 @@ public class LockTests {
     public void datagramSocketLock(TestProcess p) throws Exception {
         Output out = p.profile("-e cpu -d 3 -o collapsed --cstack dwarf");
         System.err.println(out);
+        System.err.println("----");
+        System.err.println(out.ratio("(PlatformEvent::.ark|PlatformEvent::.npark)"));
+        System.err.println(out.ratio("ReentrantLock.lock"));
+        System.err.println(out.ratio("ReentrantLock.unlock"));
+
         assert out.ratio("(PlatformEvent::.ark|PlatformEvent::.npark)") > 0.1
                 || ((out.ratio("ReentrantLock.lock") + out.ratio("ReentrantLock.unlock")) > 0.1 && out.contains("Unsafe_.ark"));
         out = p.profile("-e lock -d 3 -o collapsed");
