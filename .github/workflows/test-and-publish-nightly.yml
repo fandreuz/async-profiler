@@ -116,30 +116,6 @@ jobs:
             java-version: 11
             java-distribution: corretto
             image: public.ecr.aws/async-profiler/asprof-builder-arm:latest
-          - runson:
-              display: alpine
-              name: ubuntu-latest
-            java-version: 11
-            java-distribution: corretto
-            asprof-binaries-job: linux-x64
-            image: public.ecr.aws/async-profiler/asprof-builder-alpine:corretto-11
-          - runson:
-              display: amazonlinux2
-              name: ubuntu-latest
-            java-version: 11
-            java-distribution: corretto
-            image: public.ecr.aws/async-profiler/asprof-builder-amazonlinux:2
-            # GHA provides Node.js by attaching a volume to the container. The container path is
-            # '/__e/node20', and it's not writable unless we override it via 'container.volumes'.
-            volumes: '["/tmp/node20:/__e/node20"]'
-            asprof-binaries-job: linux-x64
-          - runson:
-              display: amazonlinux2023
-              name: ubuntu-latest
-            java-version: 11
-            java-distribution: corretto
-            image: public.ecr.aws/async-profiler/asprof-builder-amazonlinux:2023
-            asprof-binaries-job: linux-x64
     runs-on: ${{ matrix.runson.name }}
     container:
       image: ${{ matrix.image }}
@@ -150,7 +126,9 @@ jobs:
       - name: Run container setup
         run: "[ ! -f /root/setup.sh ] || /root/setup.sh"
       - name: Set kernel perf event paranoid setting
-        run: sudo sysctl kernel.perf_event_paranoid=1
+        run: |
+          sudo apt install procps
+          sudo sysctl kernel.perf_event_paranoid=1
       - name: Set kernel kptr restrict setting
         run: sudo sysctl kernel.kptr_restrict=0
       - name: Setup Java
