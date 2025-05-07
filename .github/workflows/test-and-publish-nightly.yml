@@ -147,7 +147,7 @@ jobs:
       volumes: ${{ fromJSON(matrix.volumes || '[]') }}
     name: "Integration test (${{ matrix.runson.display }}, ${{ matrix.java-distribution }} ${{ matrix.java-version }})"
     steps:
-      - name: Ls perf events:
+      - name: Ls perf events
         run: ls /sys/bus/event_source/devices/cpu/events/
       - name: Run container setup
         run: "[ ! -f /root/setup.sh ] || /root/setup.sh"
