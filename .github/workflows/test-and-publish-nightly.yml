@@ -119,7 +119,7 @@ jobs:
     runs-on: ${{ matrix.runson.name }}
     container:
       image: ${{ matrix.image }}
-      options: --privileged
+      options: --privileged --security-opt seccomp=unconfined --cap-add=PERFMON
       volumes: ${{ fromJSON(matrix.volumes || '[]') }}
     name: "Integration test (${{ matrix.runson.display }}, ${{ matrix.java-distribution }} ${{ matrix.java-version }})"
     steps:
