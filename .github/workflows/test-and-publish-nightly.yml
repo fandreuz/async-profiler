@@ -127,7 +127,8 @@ jobs:
         run: "[ ! -f /root/setup.sh ] || /root/setup.sh"
       - name: Set kernel perf event paranoid setting
         run: |
-          sudo apt install procps
+          sudo apt update -y
+          sudo apt install -y procps
           sudo sysctl kernel.perf_event_paranoid=1
       - name: Set kernel kptr restrict setting
         run: sudo sysctl kernel.kptr_restrict=0
