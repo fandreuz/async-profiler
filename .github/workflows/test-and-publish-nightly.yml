@@ -149,6 +149,10 @@ jobs:
     steps:
       - name: Run container setup
         run: "[ ! -f /root/setup.sh ] || /root/setup.sh"
+      - name: Set kernel perf event paranoid setting
+        run: sudo sysctl kernel.perf_event_paranoid=1
+      - name: Set kernel kptr restrict setting
+        run: sudo sysctl kernel.kptr_restrict=0
       - name: Setup Java
         uses: actions/setup-java@v4
         # https://github.com/actions/setup-java/issues/678#issuecomment-2446279753
