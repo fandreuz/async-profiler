@@ -844,7 +844,7 @@ static bool isValidHandle(const CodeCache* cc, void* handle) {
     Dl_info dl_info;
 
     // Check handle exists & shared objects are still available at original base image
-    if (handle == NULL || dladdr(cc->imageBase(), &dl_info) == 0) {
+    if (handle == NULL || dladdr(cc->imageBase() + 1, &dl_info) == 0) {
         return false;
     }
 
