@@ -143,16 +143,21 @@ jobs:
         id: extract_artifact
         run: |
           release_archive=$(basename $(find async_profiler_release -type f -iname "async-profiler-*" ))
-          case "${{ matrix.runson.name }}" in
-            macos*)
-              unzip async_profiler_release/$release_archive
-            ;;
-            *)
-              tar xvf async_profiler_release/$release_archive
-            ;;
-          esac
-          echo "jars_directory=jar_artifacts" >> $GITHUB_OUTPUT
+          tar xvf async_profiler_release/$release_archive
           echo "release_directory=$(basename $(find . -type d -iname "async-profiler-*" ))" >> $GITHUB_OUTPUT
+          echo "jars_directory=jar_artifacts" >> $GITHUB_OUTPUT
+          rm -rf async_profiler_release
+      - name: Download async-profiler debug artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.set_variables.outputs.artifact_name }}-debug
+          path: async_profiler_debug
+      - name: Extract async-profiler debug artifact
+        id: extract_debug_artifact
+        run: |
+          debug_archive=$(basename $(find async_profiler_debug -type f -iname "async-profiler-*" ))
+          tar xvf async_profiler_debug/$debug_archive
+          echo "debug_directory=$(basename $(find . -type d -iname "async-profiler-*" ))" >> $GITHUB_OUTPUT
       - name: Setup core dump collection
         run: |
           case "${{ matrix.runson.name }}" in
@@ -173,26 +178,10 @@ jobs:
           cp -r ${{ steps.extract_artifact.outputs.release_directory }}/bin build
           cp -r ${{ steps.extract_artifact.outputs.release_directory }}/lib build
           make test-java -j TESTS=nonjava
-      - name: Upload integration test logs
-        uses: actions/upload-artifact@v4
-        # Always upload, especially after test failure
-        if: always()
-        with:
-          name: integration-test-logs-${{ matrix.runson.display }}-${{ matrix.java-version }}-${{ steps.set_variables.outputs.short_sha }}
-          path: |
-            build/test/logs/
-            hs_err*.log
-      - name: Upload integration test core dump
-        uses: actions/upload-artifact@v4
-        # Always upload, especially after test failure
-        if: always()
-        with:
-          name: integration-test-core-dump-${{ matrix.runson.display }}-${{ matrix.java-version }}-${{ steps.set_variables.outputs.short_sha }}
-          retention-days: 1
-          if-no-files-found: ignore
-          path: |
-            core*
-            build/test
+      - name: gdb
+        run: |
+          yum install -y gdb
+          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}" -ex "bt" build/test/bin/non_java_app core
   publish-only-on-push:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: publish (nightly)
