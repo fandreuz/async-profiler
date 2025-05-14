@@ -179,6 +179,7 @@ jobs:
           cp -r ${{ steps.extract_artifact.outputs.release_directory }}/lib build
           make test-java -j TESTS=nonjava
       - name: gdb
+        if: always()
         run: |
           yum install -y gdb
           gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}" -ex "bt" build/test/bin/non_java_app core
