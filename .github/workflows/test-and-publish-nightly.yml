@@ -181,7 +181,7 @@ jobs:
       - name: gdb
         if: always()
         run: |
-          yum install -y gdb
+          apt install -y gdb
           gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}" -ex "bt" build/test/bin/non_java_app core
   publish-only-on-push:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
