@@ -182,7 +182,7 @@ jobs:
         if: always()
         run: |
           apt update -y && apt install -y gdb
-          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}" -ex "bt" build/test/bin/non_java_app core
+          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}/libasyncProfiler.so.debug" -ex "bt" build/test/bin/non_java_app core
   publish-only-on-push:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: publish (nightly)
