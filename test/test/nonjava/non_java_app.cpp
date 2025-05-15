@@ -115,14 +115,14 @@ void loadJvmLib() {
 
 void startJvm() {
     JavaVMInitArgs vm_args;
-    JavaVMOption options[2];
+    JavaVMOption options[1];
 
     options[0].optionString = const_cast<char*>("-Djava.class.path=build/test");
-    options[1].optionString = const_cast<char*>("-Xint");
+    //options[1].optionString = const_cast<char*>("-Xcheck:jni");
 
     // Configure JVM
     vm_args.version = JNI_VERSION_1_6;
-    vm_args.nOptions = 2;
+    vm_args.nOptions = 1;
     vm_args.options = options;
     vm_args.ignoreUnrecognized = true;
 
