@@ -99,7 +99,7 @@ jobs:
               display: linux-arm64
               # There is no "latest" tag available (yet) as ARM runners are still in public preview
               name: ubuntu-24.04-arm
-            java-version: 21
+            java-version: 17
             java-distribution: corretto
             image: public.ecr.aws/async-profiler/asprof-builder-arm:latest
     runs-on: ${{ matrix.runson.name }}
