@@ -159,7 +159,7 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
         } else {
             break;
         }
-        fprintf(stderr, "sp: %lx, %x\n", sp, f->fp_off);
+        fprintf(stderr, "sp: %lx, %d\n", sp, f->fp_off);
 
         // Check if the next frame is below on the current stack
         if (sp < prev_sp || sp >= prev_sp + MAX_FRAME_SIZE || sp >= bottom) {
