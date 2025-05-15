@@ -188,9 +188,14 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
             } else if (f->fp_off != DW_SAME_FP) {
                 fprintf(stderr, "IF3\n");
                 // AArch64 default_frame
-                pc = stripPointer(SafeAccess::load((void**)(sp + f->pc_off)));
+                uintptr_t pc_before_unsig = SafeAccess::load((void**)(sp + f->pc_off));
+                fprintf(stderr, "PC BEF UNSIG: %lx\n", pc_before_unsig);
+                pc = stripPointer(pc_before_unsig);
+                fprintf(stderr, "PC AFTER UNSIG: %lx\n", pc);
                 sp = defaultSenderSP(sp, fp);
+                fprintf(stderr, "NEW SP: %lx\n", sp);
                 if (sp < prev_sp || sp >= bottom || !aligned(sp)) {
+                    fprintf(stderr, "IF IN\n");
                     break;
                 }
             } else if (depth <= 1) {
