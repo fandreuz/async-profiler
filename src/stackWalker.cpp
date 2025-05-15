@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- #include <iostream>
+ #include <stdio.h>
 #include <setjmp.h>
 #include "stackWalker.h"
 #include "dwarf.h"
@@ -159,6 +159,7 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
         } else {
             break;
         }
+        printf("sp: %lx, %x\n", sp, f->fp_off);
 
         // Check if the next frame is below on the current stack
         if (sp < prev_sp || sp >= prev_sp + MAX_FRAME_SIZE || sp >= bottom) {
@@ -174,7 +175,6 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
             pc = (const char*)pc + (f->fp_off >> 1);
         } else {
             if (f->fp_off != DW_SAME_FP && f->fp_off < MAX_FRAME_SIZE && f->fp_off > -MAX_FRAME_SIZE) {
-                std::cerr << sp << ", " << f->fp_off << std::endl;
                 fp = (uintptr_t)SafeAccess::load((void**)(sp + f->fp_off));
             }
             if (EMPTY_FRAME_SIZE > 0 || cfa_off != 0) {
