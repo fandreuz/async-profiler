@@ -52,7 +52,7 @@ void loadProfiler() {
 }
 
 void startProfiler() {
-    asprof_error_t err = _asprof_execute("start,event=cpu,interval=1ms,cstack=dwarf", outputCallback);
+    asprof_error_t err = _asprof_execute("start,event=cpu,interval=1ms,cstack=vmx", outputCallback);
     if (err != NULL) {
         std::cerr << _asprof_error_str(err) << std::endl;
         exit(1);
