@@ -151,8 +151,12 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
         u8 cfa_reg = (u8)f->cfa;
         int cfa_off = f->cfa >> 8;
         if (cfa_reg == DW_REG_SP) {
+            fprintf(stderr, "SP IF1:\n");
+            fprintf(stderr, "old sp: %lx, cfa_off: %d\n", sp, cfa_off);
             sp = sp + cfa_off;
         } else if (cfa_reg == DW_REG_FP) {
+            fprintf(stderr, "FP IF1\n");
+            fprintf(stderr, "fp: %lx, cfa_off: %d\n", fp, cfa_off);
             sp = fp + cfa_off;
         } else if (cfa_reg == DW_REG_PLT) {
             sp += ((uintptr_t)pc & 15) >= 11 ? cfa_off * 2 : cfa_off;

@@ -5,6 +5,7 @@
 
 #ifdef __linux__
 
+#include <stdio.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <stdio.h>
@@ -859,7 +860,9 @@ static bool isValidHandle(const CodeCache* cc, void* handle) {
     const char* dlinfo_slash_ptr = strrchr(dl_info.dli_fname, '/');
     const char* dlinfo_lib_name = dlinfo_slash_ptr == NULL ? dl_info.dli_fname : dlinfo_slash_ptr + 1;
 
-    return strcmp(dlinfo_lib_name, cc_lib_name) == 0;
+    int res = strcmp(dlinfo_lib_name, cc_lib_name);
+    fprintf(stderr, "%s --- %s, %d\n", dlinfo_lib_name, cc_lib_name, res);
+    return res == 0;
 }
 
 UnloadProtection::UnloadProtection(const CodeCache *cc) {
