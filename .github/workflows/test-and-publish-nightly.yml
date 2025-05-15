@@ -182,7 +182,8 @@ jobs:
         if: always()
         run: |
           apt update -y && apt install -y gdb
-          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_symbols }}" -ex "bt" build/test/bin/non_java_app core
+          address=$(gdb --batch -ex "info sharedlibrary" build/test/bin/non_java_app core | awk '/libasyncProfiler\.so/ {print $1}')
+          gdb --batch -ex "add-symbol-file ${{ steps.extract_debug_artifact.outputs.debug_symbols }} $address" -ex "bt" build/test/bin/non_java_app core
   publish-only-on-push:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: publish (nightly)
