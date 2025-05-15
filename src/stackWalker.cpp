@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+ #include <iostream>
 #include <setjmp.h>
 #include "stackWalker.h"
 #include "dwarf.h"
