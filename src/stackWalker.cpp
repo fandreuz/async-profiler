@@ -163,24 +163,30 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
 
         // Check if the next frame is below on the current stack
         if (sp < prev_sp || sp >= prev_sp + MAX_FRAME_SIZE || sp >= bottom) {
+            fprintf(stderr, "NOT BELOW\n");
             break;
         }
 
         // Stack pointer must be word aligned
         if (!aligned(sp)) {
+            fprintf(stderr, "NOTALIGNED\n");
             break;
         }
 
         if (f->fp_off & DW_PC_OFFSET) {
+            fprintf(stderr, "IF0\n");
             pc = (const char*)pc + (f->fp_off >> 1);
         } else {
             if (f->fp_off != DW_SAME_FP && f->fp_off < MAX_FRAME_SIZE && f->fp_off > -MAX_FRAME_SIZE) {
+                fprintf(stderr, "IF1\n");
                 fp = (uintptr_t)SafeAccess::load((void**)(sp + f->fp_off));
             }
             if (EMPTY_FRAME_SIZE > 0 || cfa_off != 0) {
+                fprintf(stderr, "IF2\n");
                 // x86 or AArch64 non-default frame
                 pc = stripPointer(SafeAccess::load((void**)(sp + f->pc_off)));
             } else if (f->fp_off != DW_SAME_FP) {
+                fprintf(stderr, "IF3\n");
                 // AArch64 default_frame
                 pc = stripPointer(SafeAccess::load((void**)(sp + f->pc_off)));
                 sp = defaultSenderSP(sp, fp);
@@ -188,14 +194,17 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
                     break;
                 }
             } else if (depth <= 1) {
+                fprintf(stderr, "IF4\n");
                 pc = (const void*)frame.link();
             } else {
+                fprintf(stderr, "ELSE\n");
                 // Stack bottom
                 break;
             }
         }
 
         if (inDeadZone(pc)) {
+            fprintf(stderr, "DEAD\n");
             break;
         }
     }
