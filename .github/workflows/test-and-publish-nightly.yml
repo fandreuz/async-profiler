@@ -157,7 +157,7 @@ jobs:
         run: |
           debug_archive=$(basename $(find async_profiler_debug -type f -iname "async-profiler-*" ))
           tar xvf async_profiler_debug/$debug_archive
-          echo "debug_directory=$(basename $(find . -type d -iname "async-profiler-*" ))" >> $GITHUB_OUTPUT
+          echo "debug_symbols=$(basename $(find . -type d -name "libasyncProfiler.so.debug" ))" >> $GITHUB_OUTPUT
       - name: Setup core dump collection
         run: |
           case "${{ matrix.runson.name }}" in
@@ -182,7 +182,7 @@ jobs:
         if: always()
         run: |
           apt update -y && apt install -y gdb
-          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_directory }}/libasyncProfiler.so.debug" -ex "bt" build/test/bin/non_java_app core
+          gdb --batch -ex "symbol-file ${{ steps.extract_debug_artifact.outputs.debug_symbols }}" -ex "bt" build/test/bin/non_java_app core
   publish-only-on-push:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: publish (nightly)
