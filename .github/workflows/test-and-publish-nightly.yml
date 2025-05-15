@@ -182,6 +182,7 @@ jobs:
         if: always()
         run: |
           apt update -y && apt install -y gdb
+          gdb --batch -ex "info sharedlibrary" build/test/bin/non_java_app core
           address=$(gdb --batch -ex "info sharedlibrary" build/test/bin/non_java_app core | awk '/libasyncProfiler\.so/ {print $1}')
           file=${{ steps.extract_debug_artifact.outputs.debug_symbols }}
           echo $file
