@@ -5,6 +5,7 @@
 
 #ifdef __linux__
 
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <stdio.h>
@@ -845,11 +846,13 @@ static bool isValidHandle(const CodeCache* cc, void* handle) {
 
     // Check handle exists & shared objects are still available at original base image
     if (handle == NULL || dladdr(cc->imageBase(), &dl_info) == 0 || dl_info.dli_fname == NULL) {
+        std::cerr << "not valid: " << cc->name() << ", " << handle << ", " << dladdr(cc->imageBase(), &dl_info) << ", " << dl_info.dli_fname << std::endl;
         return false;
     }
 
     // Check that originally discovered base image is same as found base image
     if (cc->imageBase() != (const char*) dl_info.dli_fbase) {
+        std::cerr << "not valid due to image base check: " << cc->name() << ", expected: " << dl_info.dli_fbase << ", got: " << cc->imageBase() << std::endl;
         return false;
     }
 
