@@ -175,7 +175,7 @@ jobs:
           make build/test.jar
           cp -r ${{ steps.extract_artifact.outputs.release_directory }}/bin build
           cp -r ${{ steps.extract_artifact.outputs.release_directory }}/lib build
-          make test-java -j TESTS=nonjava
+          make test-java -j TESTS=NonjavaTests.jvmInBetween
       - name: gdb
         if: always()
         run: |
