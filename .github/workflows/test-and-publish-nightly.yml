@@ -262,9 +262,8 @@ jobs:
             trimmed="${trimmed%_[0-9]*}"
             # Replace '!' with '/'
             executable="${trimmed//\!//}"
-            asprof_address=$(gdb --batch -ex "info sharedlibrary" $executable $core_file | awk '/libasyncProfiler\.so/ && $1 ~ /^0x/ {print $1}')
             gdb --batch \
-              -ex "add-symbol-file ${{ steps.extract_debug_artifact.outputs.debug_symbols }} $asprof_address" \
+              -ex "add-symbol-file ${{ steps.extract_debug_artifact.outputs.debug_symbols }}" \
               -ex "bt" \
               $executable $core_file
           done
