@@ -18,6 +18,6 @@ public class ComptaskTests {
         Output out = p.waitForExit("%f");
         assert p.exitCode() == 0;
         System.err.println(out);
-        assert out.contains("C2Compiler::compile_method;java/lang/Thread.<init>");
+        assert out.contains("C2Compiler::compile_method;java/lang/Thread.<?init>?");
     }
 }
