@@ -11,7 +11,7 @@ public class ComptaskTests {
     @Test(
         mainClass = Main.class,
         agentArgs = "start,features=comptask,collapsed,interval=1ms,file=%f",
-        jvmArgs = "-Xcomp",
+        jvmArgs = "-XX:+PrintCompilation -Xcomp",
         jvm = Jvm.HOTSPOT
     )
     public void testCompTask(TestProcess p) throws Exception {
