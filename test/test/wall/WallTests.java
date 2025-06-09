@@ -23,6 +23,7 @@ public class WallTests {
         long s1 = out.samples("test/wall/SocketTest.main");
         long s2 = out.samples("test/wall/BusyClient.run");
         long s3 = out.samples("test/wall/IdleClient.run");
+        System.err.println(out);
         assert s1 > 10 && s2 > 10 && s3 > 10;
         assert Math.abs(s1 - s2) < 5 && Math.abs(s2 - s3) < 5 && Math.abs(s3 - s1) < 5;
     }
