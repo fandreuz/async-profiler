@@ -24,6 +24,7 @@ public class AllocTests {
         assert out.contains("G1RemSet::");
 
         out = p.profile("--alloc 1 -d 3 -o collapsed");
+        System.err.println(out);
         assert out.contains("java/io/BufferedReader.readLine;");
         assert out.contains("java/lang/String.split;");
         assert out.contains("java/lang/String.trim;");
