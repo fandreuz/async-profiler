@@ -1731,8 +1731,9 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
                     Mapping{(uintptr_t) cc->minAddress(), (uintptr_t) cc->maxAddress(), lib_name_strindex});
             }
 
+            FrameTypeId ft = fn.type(trace->frames[j]);
             size_t location_idx = locations.indexOf(
-                Location{mapping_idx, frame_info.get_address(), Line{function_idx, frame_info.get_line()}});
+                Location{mapping_idx, frame_info.get_address(), Line{function_idx, frame_info.get_line()}, ft});
             otlp_buffer.putVarInt(location_idx);
         }
         samples_info.push_back(SampleInfo{cts->samples, cts->counter, num_frames, thread_name});
@@ -1740,7 +1741,6 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     otlp_buffer.commitMessage(location_indices_mark);
 
     const char* thread_name_key = "thread.name";
-
     size_t frames_seen = 0;
     for (const SampleInfo& si : samples_info) {
         protobuf_mark_t sample_mark = otlp_buffer.startMessage(Profile::SAMPLE, 1);
@@ -1775,10 +1775,16 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     });
 
     // Write locations table
+    const char* frame_type_key = "profile.frame.type";
     locations.forEachOrdered([&] (const Location& location) {
         protobuf_mark_t location_mark = otlp_buffer.startMessage(ProfilesDictionary::LOCATION_TABLE, 1);
         otlp_buffer.field(Location::MAPPING_INDEX, (u64) location.mapping_index);
         otlp_buffer.field(Location::ADDRESS, (u64) location.address);
+
+        auto otlp_ft = otlp_frame_type.find(location.frameTypeId);
+        if (otlp_ft != otlp_frame_type.end()) {
+            otlp_buffer.field(Location::ATTRIBUTE_INDICES, attributes.indexOf(KeyValue(frame_type_key, otlp_ft->second.c_str())));
+        }
 
         protobuf_mark_t line_mark = otlp_buffer.startMessage(Location::LINE, 1);
         otlp_buffer.field(Line::FUNCTION_INDEX, location.line.function_index);

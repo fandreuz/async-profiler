@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include "protobuf.h"
+#include "vmEntry.h"
 
 #define NO_COPY_MOVE(TypeName)                   \
   TypeName(const TypeName&) = delete;            \
@@ -81,18 +82,21 @@ class Location {
     static const protobuf_index_t MAPPING_INDEX = 1;
     static const protobuf_index_t ADDRESS = 2;
     static const protobuf_index_t LINE = 3;
+    static const protobuf_index_t ATTRIBUTE_INDICES = 5;
 
     const size_t mapping_index;
     const u64 address;
     const Line line;
+    const FrameTypeId frameTypeId;
 
-    Location(size_t mapping_index, u64 address, Line line) :
-        mapping_index(mapping_index), address(address), line(line) {}
+    Location(size_t mapping_index, u64 address, Line line, FrameTypeId frameTypeId):
+        mapping_index(mapping_index), address(address), line(line), frameTypeId(frameTypeId) {}
 
     bool operator==(const Location& other) const {
         return mapping_index == other.mapping_index
             && address == other.address
-            && line == other.line;
+            && line == other.line
+            && frameTypeId == other.frameTypeId;
     }
 };
 
@@ -162,6 +166,17 @@ namespace AnyValue {
     const protobuf_index_t STRING_VALUE = 1;
 }
 
+static const std::unordered_map<FrameTypeId, std::string> otlp_frame_type = {
+    {FRAME_KERNEL, "kernel"},
+    {FRAME_NATIVE, "native"},
+    {FRAME_CPP, "native"},
+    {FRAME_C1_COMPILED, "jvm"},
+    {FRAME_JIT_COMPILED, "jvm"},
+    {FRAME_INTERPRETED, "jvm"},
+    // TODO: we should handle inlined frames properly
+    {FRAME_INLINED, "abort-marker"}
+};
+
 }
 
 namespace std {
@@ -191,7 +206,8 @@ namespace std {
             size_t h2 = std::hash<u64>()(l.address);
             size_t h3 = std::hash<size_t>()(l.line.function_index);
             size_t h4 = std::hash<u64>()(l.line.line);
-            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+            size_t h5 = static_cast<size_t>(l.frameTypeId);
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3) ^ (h5 << 4);
         }
     };
 
