@@ -123,6 +123,8 @@ class CodeCache {
     int _count;
     CodeBlob* _blobs;
 
+    const char* _build_id;
+
     void expand();
     bool makeImportsPatchable();
     void saveImport(ImportId id, void** entry);
@@ -158,6 +160,14 @@ class CodeCache {
 
     void setTextBase(const char* text_base) {
         _text_base = text_base;
+    }
+
+    void setBuildId(const char* build_id) {
+        _build_id = build_id;
+    }
+
+    const char* getBuildId() const {
+        return _build_id;
     }
 
     void setPlt(unsigned int plt_offset, unsigned int plt_size) {

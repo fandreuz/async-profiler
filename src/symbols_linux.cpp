@@ -776,6 +776,48 @@ static void collectSharedLibraries(std::unordered_map<u64, SharedLibrary>& libs,
     fclose(f);
 }
 
+#define ALIGN(val, align)       (((val) + (align) - 1) & ~((align) - 1))
+
+struct build_id_note {
+    ElfW(Nhdr) nhdr;
+    char name[4];
+    uint8_t build_id[0];
+};
+
+ElfW(Word) build_id_length(const struct build_id_note *note) {
+    return note->nhdr.n_descsz;
+}
+
+int build_id_phdr_callback(dl_phdr_info* info, size_t size, void* data) {
+    for (unsigned i = 0; i < info->dlpi_phnum; i++) {
+        if (info->dlpi_phdr[i].p_type != PT_NOTE) continue;
+
+        build_id_note* note = (build_id_note*) (info->dlpi_addr + info->dlpi_phdr[i].p_vaddr);
+        ptrdiff_t len = info->dlpi_phdr[i].p_filesz;
+
+        while (len >= sizeof(build_id_note)) {
+            if (note->nhdr.n_type == NT_GNU_BUILD_ID && note->nhdr.n_descsz != 0 
+                    && note->nhdr.n_namesz == 4 && memcmp(note->name, "GNU", 4) == 0) {
+                CodeCacheArray* array = (CodeCacheArray*) data;
+                const int lib_count = array->count();
+                for (int i = 0; i < lib_count; i++) {
+                    if ((ElfW(Addr)) (*array)[i]->minAddress() == info->dlpi_addr) {
+                        (*array)[i]->setBuildId();
+                        break;
+                    }
+                }
+                return 0;
+            }
+
+            size_t offset = sizeof(ElfW(Nhdr)) + ALIGN(note->nhdr.n_namesz, 4) + ALIGN(note->nhdr.n_descsz, 4);
+            note = (build_id_note*) ((char*) note + offset);
+            len -= offset;
+        }
+    }
+
+    return 1;
+}
+
 void Symbols::parseLibraries(CodeCacheArray* array, bool kernel_symbols) {
     MutexLocker ml(_parse_lock);
 
@@ -830,6 +872,8 @@ void Symbols::parseLibraries(CodeCacheArray* array, bool kernel_symbols) {
         applyPatch(cc);
         array->add(cc);
     }
+
+    dl_iterate_phdr(build_id_phdr_callback, array);
 
     if (array->count() >= MAX_NATIVE_LIBS && !_libs_limit_reported) {
         Log::warn("Number of parsed libraries reached the limit of %d", MAX_NATIVE_LIBS);
