@@ -45,8 +45,9 @@ namespace Profile {
     const protobuf_index_t SAMPLE_TYPE = 1;
     const protobuf_index_t SAMPLE = 2;
     const protobuf_index_t LOCATION_INDICES = 3;
-    const protobuf_index_t PERIOD_TYPE = 6;
-    const protobuf_index_t PERIOD = 7;
+    // UTC
+    const protobuf_index_t TIME_NANOS = 4;
+    const protobuf_index_t DURATION_NANOS = 5;
 }
 
 namespace ValueType {

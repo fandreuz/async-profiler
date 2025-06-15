@@ -69,6 +69,7 @@ class Profiler {
     int _event_mask;
 
     time_t _start_time;
+    u64 _start_time_ns;
     time_t _stop_time;
     int _epoch;
     u32 _gc_id;

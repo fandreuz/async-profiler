@@ -1241,6 +1241,7 @@ Error Profiler::start(Arguments& args, bool reset) {
 
     _state = RUNNING;
     _start_time = time(NULL);
+    _start_time_ns = OS::nanotime();
     _epoch++;
 
     if (args._timeout != 0 || args._output == OUTPUT_JFR) {
@@ -1674,6 +1675,9 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
 
     recordSampleType(otlp_buffer, strings, _engine->type(), "count");
     recordSampleType(otlp_buffer, strings, _engine->type(), _engine->units());
+
+    otlp_buffer.field(Profile::TIME_NANOS, _start_time_ns);
+    otlp_buffer.field(Profile::DURATION_NANOS, OS::nanotime() - _start_time_ns);
 
     std::vector<CallTraceSample*> call_trace_samples;
     _call_trace_storage.collectSamples(call_trace_samples);
