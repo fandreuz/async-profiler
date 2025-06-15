@@ -1665,8 +1665,8 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     Index<Function> functions;
     Index<Mapping> mappings;
     const size_t empty_mapping_idx = mappings.indexOf(Mapping{0, 0, strings.indexOf("")});
-
     Index<Location> locations;
+    Index<KeyValue> attributes;
 
     protobuf_mark_t resource_profiles_mark = otlp_buffer.startMessage(ProfilesData::RESOURCE_PROFILES);
     protobuf_mark_t scope_profiles_mark = otlp_buffer.startMessage(ResourceProfiles::SCOPE_PROFILES);
@@ -1682,6 +1682,7 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
         u64 samples;
         u64 counter;
         size_t num_frames;
+        const char* thread_name;
     };
     std::vector<SampleInfo> samples_info;
     samples_info.reserve(call_trace_samples.size());
@@ -1693,9 +1694,16 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
         CallTrace* trace = cts->acquireTrace();
         if (trace == NULL || excludeTrace(&fn, trace) || cts->samples == 0) continue;
 
-        samples_info.push_back(SampleInfo{cts->samples, cts->counter, (size_t)trace->num_frames});
-
+        const char* thread_name = nullptr;
+        size_t num_frames = trace->num_frames;
         for (int j = 0; j < trace->num_frames; j++) {
+            if (trace->frames[j].bci == BCI_THREAD_ID) {
+                // We don't want the prefix "[tid="
+                thread_name = fn.name(trace->frames[j], true);
+                num_frames--;
+                continue;
+            }
+
             FrameInfo frame_info = fn.frameInfo(trace->frames[j]);
             const CodeCache* cc = frame_info.get_lib();
 
@@ -1727,14 +1735,20 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
                 Location{mapping_idx, frame_info.get_address(), Line{function_idx, frame_info.get_line()}});
             otlp_buffer.putVarInt(location_idx);
         }
+        samples_info.push_back(SampleInfo{cts->samples, cts->counter, num_frames, thread_name});
     }
     otlp_buffer.commitMessage(location_indices_mark);
+
+    const char* thread_name_key = "thread.name";
 
     size_t frames_seen = 0;
     for (const SampleInfo& si : samples_info) {
         protobuf_mark_t sample_mark = otlp_buffer.startMessage(Profile::SAMPLE, 1);
         otlp_buffer.field(Sample::LOCATIONS_START_INDEX, frames_seen);
         otlp_buffer.field(Sample::LOCATIONS_LENGTH, si.num_frames);
+        if (si.thread_name != nullptr) {
+            otlp_buffer.field(Sample::ATTRIBUTE_INDICES, attributes.indexOf(KeyValue{thread_name_key, si.thread_name}));
+        }
 
         protobuf_mark_t sample_value_mark = otlp_buffer.startMessage(Sample::VALUE, 1);
         otlp_buffer.putVarInt(si.samples);
@@ -1752,11 +1766,7 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
 
     protobuf_mark_t dictionary_mark = otlp_buffer.startMessage(ProfilesData::DICTIONARY);
 
-    // Write mapping_table. Not currently used, but required by some parsers
-    protobuf_mark_t mapping_mark = otlp_buffer.startMessage(ProfilesDictionary::MAPPING_TABLE, 1);
-    otlp_buffer.commitMessage(mapping_mark);
-
-    // Write function_table
+    // Write functions table
     functions.forEachOrdered([&] (const Function& function) {
         protobuf_mark_t function_mark = otlp_buffer.startMessage(ProfilesDictionary::FUNCTION_TABLE, 1);
         otlp_buffer.field(Function::NAME_STRINDEX, function.name_strindex);
@@ -1764,7 +1774,7 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
         otlp_buffer.commitMessage(function_mark);
     });
 
-    // Write location_table
+    // Write locations table
     locations.forEachOrdered([&] (const Location& location) {
         protobuf_mark_t location_mark = otlp_buffer.startMessage(ProfilesDictionary::LOCATION_TABLE, 1);
         otlp_buffer.field(Location::MAPPING_INDEX, (u64) location.mapping_index);
@@ -1778,18 +1788,30 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
         otlp_buffer.commitMessage(location_mark);
     });
 
-    // Write string_table
+    // Write strings table
     strings.forEachOrdered([&] (const std::string& s) {
         otlp_buffer.field(ProfilesDictionary::STRING_TABLE, s.data(), s.length());
     });
 
-    // Write mapping table
+    // Write mappings table
     mappings.forEachOrdered([&] (const Mapping& mapping) {
         protobuf_mark_t mapping_table_mark = otlp_buffer.startMessage(ProfilesDictionary::MAPPING_TABLE);
         otlp_buffer.field(Mapping::MEMORY_START, mapping.memory_start);
         otlp_buffer.field(Mapping::MEMORY_LIMIT, mapping.memory_limit);
         otlp_buffer.field(Mapping::FILENAME_STRINDEX, mapping.file_name_strindex);
         otlp_buffer.commitMessage(mapping_table_mark);
+    });
+
+    // Write attributes table
+    attributes.forEachOrdered([&] (const KeyValue& kv) {
+        protobuf_mark_t attribute_table_mark = otlp_buffer.startMessage(ProfilesDictionary::ATTRIBUTE_TABLE);
+        otlp_buffer.field(KeyValue::KEY, kv.key);
+        
+        protobuf_mark_t attribute_value_mark = otlp_buffer.startMessage(KeyValue::VALUE);
+        otlp_buffer.field(AnyValue::STRING_VALUE, kv.value);
+        otlp_buffer.commitMessage(attribute_value_mark);
+
+        otlp_buffer.commitMessage(attribute_table_mark);
     });
 
     otlp_buffer.commitMessage(dictionary_mark);

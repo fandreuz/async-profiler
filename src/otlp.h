@@ -24,6 +24,7 @@ namespace ProfilesDictionary {
     const protobuf_index_t LOCATION_TABLE = 2;
     const protobuf_index_t FUNCTION_TABLE = 3;
     const protobuf_index_t STRING_TABLE = 5;
+    const protobuf_index_t ATTRIBUTE_TABLE = 6;
 }
 
 namespace ProfilesData {
@@ -57,6 +58,7 @@ namespace Sample {
     const protobuf_index_t LOCATIONS_START_INDEX = 1;
     const protobuf_index_t LOCATIONS_LENGTH = 2;
     const protobuf_index_t VALUE = 3;
+    const protobuf_index_t ATTRIBUTE_INDICES = 4;
 }
 
 class Line {
@@ -139,6 +141,27 @@ class Mapping {
     }
 };
 
+// Attributes are stored as plain strings, they are not part of the string pool
+class KeyValue {
+  public:
+    static const protobuf_index_t KEY = 1;
+    static const protobuf_index_t VALUE = 2;
+
+    const char* key;
+    const char* value;
+
+    KeyValue(const char* key, const char* value) : key(key), value(value) {}
+
+    bool operator==(const KeyValue& other) const {
+        return strcmp(key, other.key) == 0
+            && strcmp(value, other.value) == 0;
+    }
+};
+
+namespace AnyValue {
+    const protobuf_index_t STRING_VALUE = 1;
+}
+
 }
 
 namespace std {
@@ -169,6 +192,22 @@ namespace std {
             size_t h3 = std::hash<size_t>()(l.line.function_index);
             size_t h4 = std::hash<u64>()(l.line.line);
             return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+        }
+    };
+
+    size_t hash_cstring(const char* str) {
+        size_t hash = 5381;
+        int c;
+        while ((c = *str++)) hash = ((hash << 5) + hash) + c;
+        return hash;
+    }
+
+    template <>
+    struct hash<Otlp::KeyValue> {
+        size_t operator()(const Otlp::KeyValue& kv) const {
+            size_t h1 = hash_cstring(kv.key);
+            size_t h2 = hash_cstring(kv.value);
+            return h1 ^ (h2 << 1);
         }
     };
 }
