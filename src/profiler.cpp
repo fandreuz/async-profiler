@@ -1675,8 +1675,8 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     _call_trace_storage.collectSamples(call_trace_samples);
 
     struct SampleInfo {
-        u64 counter;
         u64 samples;
+        u64 counter;
         size_t num_frames;
     };
     std::vector<SampleInfo> samples_info;
