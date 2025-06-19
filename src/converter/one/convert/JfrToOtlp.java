@@ -39,6 +39,16 @@ public class JfrToOtlp extends JfrConverter {
     @Override
     public void convert() throws IOException {
         long rpMark = proto.startField(PROFILES_DATA_resource_profiles, BIG_MESSAGE_BYTE_COUNT);
+
+        long resource_mark = proto.startField(1, BIG_MESSAGE_BYTE_COUNT);
+        long attr_mark = proto.startField(1, BIG_MESSAGE_BYTE_COUNT);
+        proto.field(1, "service.name");
+        long value_mark = proto.startField(2, BIG_MESSAGE_BYTE_COUNT);
+        proto.field(1, args.title);
+        proto.commitField(value_mark);
+        proto.commitField(attr_mark);
+        proto.commitField(resource_mark);
+
         long spMark = proto.startField(RESOURCE_PROFILES_scope_profiles, BIG_MESSAGE_BYTE_COUNT);
         super.convert();
         proto.commitField(spMark);
