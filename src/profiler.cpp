@@ -1655,6 +1655,16 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     Index functions;
 
     protobuf_mark_t resource_profiles_mark = otlp_buffer.startMessage(ProfilesData::resource_profiles);
+
+    protobuf_mark_t resource_mark = otlp_buffer.startMessage(1);
+    protobuf_mark_t attr_mark = otlp_buffer.startMessage(1);
+    otlp_buffer.field(1, "service.name");
+    protobuf_mark_t value_mark = otlp_buffer.startMessage(2);
+    otlp_buffer.field(1, args._title);
+    otlp_buffer.commitMessage(value_mark);
+    otlp_buffer.commitMessage(attr_mark);
+    otlp_buffer.commitMessage(resource_mark);
+
     protobuf_mark_t scope_profiles_mark = otlp_buffer.startMessage(ResourceProfiles::scope_profiles);
     protobuf_mark_t profile_mark = otlp_buffer.startMessage(ScopeProfiles::profiles);
 
