@@ -31,6 +31,7 @@ jobs:
       - name: Run clang-tidy
         run: |
           make cpp-lint LINT_DIFF_ONLY=false CLANG_TIDY_FLAGS="--export-fixes=clang_tidy_out.yaml"
+          cat clang_tidy_out.yaml
       - name: PR comments
         uses: fandreuz/clang-tidy-pr-comments@link-to-clang-tidy-docs
         with:
