@@ -19,7 +19,7 @@ jobs:
           make cpp-lint LINT_DIFF_ONLY=false CLANG_TIDY_FLAGS="--export-fixes=clang_tidy_out.yaml"
           cat clang_tidy_out.yaml
       - name: PR comments
-        uses: fandreuz/clang-tidy-pr-comments@link-to-clang-tidy-docs
+        uses: fandreuz/clang-tidy-pr-comments@link
         with:
           # The GitHub token (or a personal access token)
           github_token: ${{ secrets.GITHUB_TOKEN }}
