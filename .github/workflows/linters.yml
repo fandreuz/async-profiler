@@ -19,3 +19,22 @@ jobs:
         run: |
           npm install -g prettier@3.4.2
           make check-md
+  cpp-lint:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stuff
+        run: |
+          apk add --no-cache clang-extra-tools linux-headers
+      - name: Run clang-tidy
+        run: |
+          make cpp-lint LINT_DIFF_ONLY=false CLANG_TIDY_FLAGS="--export-fixes=clang_tidy_out.yaml"
+      - name: PR comments
+        uses: fandreuz/clang-tidy-pr-comments@link-to-clang-tidy-docs
+        with:
+          # The GitHub token (or a personal access token)
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # The path to the clang-tidy fixes generated previously
+          clang_tidy_fixes: clang_tidy_out.yaml
