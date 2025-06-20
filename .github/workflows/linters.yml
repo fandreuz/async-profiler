@@ -14,10 +14,12 @@ jobs:
       - name: Install stuff
         run: |
           apk update && apk add --no-cache clang-extra-tools linux-headers make openjdk11-jdk python3 py3-pip bash
+      - name: Find Python path
+        id: find-python
+        run: echo "python_path=$(which python3)" >> $GITHUB_OUTPUT
       - name: Run clang-tidy
         run: |
           make cpp-lint LINT_DIFF_ONLY=false CLANG_TIDY_FLAGS="--export-fixes=clang_tidy_out.yaml"
-          cat clang_tidy_out.yaml
       - name: PR comments
         uses: fandreuz/clang-tidy-pr-comments@link
         with:
@@ -25,3 +27,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # The path to the clang-tidy fixes generated previously
           clang_tidy_fixes: clang_tidy_out.yaml
+          python_path: ${{ steps.find-python.outputs.python-path }}
