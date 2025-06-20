@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install stuff
         run: |
-          apk add --no-cache clang-extra-tools linux-headers
+          apk add --no-cache clang-extra-tools linux-headers make
       - name: Run clang-tidy
         run: |
           make cpp-lint LINT_DIFF_ONLY=false CLANG_TIDY_FLAGS="--export-fixes=clang_tidy_out.yaml"
