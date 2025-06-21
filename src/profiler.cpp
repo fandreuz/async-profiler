@@ -85,7 +85,7 @@ struct MethodSample {
 typedef std::pair<std::string, MethodSample> NamedMethodSample;
 
 static bool sortByCounter(const NamedMethodSample& a, const NamedMethodSample& b) {
-    return a.second.counter > b.second.counter;
+    return (bool) (a.second.counter > b.second.counter);
 }
 
 
