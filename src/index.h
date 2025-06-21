@@ -25,7 +25,7 @@ class Index {
     Index& operator=(const Index&) = delete;
     Index& operator=(Index&&) = delete;
 
-    size_t indexOf(const std::string& value) {
+    size_t indexOf(std::string value) {
         return _idx_map.insert({value, _idx_map.size()}).first->second;
     }
 
