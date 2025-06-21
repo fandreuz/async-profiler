@@ -28,3 +28,4 @@ jobs:
           # The path to the clang-tidy fixes generated previously
           clang_tidy_fixes: clang_tidy_out.yaml
           python_path: ${{ steps.find-python.outputs.python_path }}
+          pull_request_id: ${{ env.PR_ID }}
