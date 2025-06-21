@@ -1451,7 +1451,7 @@ size_t FlightRecorder::usedMemory() {
         bytes = _rec->usedMemory();
         _rec_lock.unlock();
     }
-    return bytes;
+    return (size_t) bytes;
 }
 
 bool FlightRecorder::timerTick(u64 wall_time, u32 gc_id) {
