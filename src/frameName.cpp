@@ -44,8 +44,6 @@ Matcher::Matcher(const Matcher& m) {
 }
 
 Matcher& Matcher::operator=(const Matcher& m) {
-    if (this == &m) return *this;
-
     free(_pattern);
 
     _type = m._type;
