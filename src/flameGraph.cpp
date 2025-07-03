@@ -254,7 +254,7 @@ void FlameGraph::printTreeFrame(Writer& out, const Trie& f, int level, const cha
         }
         out << _buf;
 
-        if (!trie->_children.empty()) {
+        if (trie->_children.size() > 0) {
             out << "<ul>\n";
             if (trie->_total >= _mintotal) {
                 printTreeFrame(out, *trie, level + 1, names);
