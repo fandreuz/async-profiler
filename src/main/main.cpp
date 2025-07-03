@@ -160,8 +160,6 @@ class String {
     }
 
     String& operator=(const String& other) {
-        if (this == &other) return *this;
-
         free(_str);
         _str = strdup(other._str);
         return *this;
