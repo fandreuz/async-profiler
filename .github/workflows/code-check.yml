@@ -30,7 +30,7 @@ jobs:
             CLANG_TIDY_ARGS_EXTRA="-export-fixes clang-tidy-fixes.yml"
         shell: bash
       - name: Run clang-tidy-pr-comments action
-        uses: platisd/clang-tidy-pr-comments@per-file
+        uses: fandreuz/clang-tidy-pr-comments@per-file
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           clang_tidy_fixes: clang-tidy-fixes.yml
