@@ -647,8 +647,7 @@ u64 Profiler::recordSample(void* ucontext, u64 counter, EventType event_type, Ev
 
     if (_cstack == CSTACK_VMX) {
         num_frames += StackWalker::walkVM(ucontext, frames + num_frames, _max_stack_depth, VM_EXPERT);
-    } else if (event_type <= WALL_CLOCK_SAMPLE) {
-        // Async events
+    } else if (event_type <= MALLOC_SAMPLE) {
         if (_cstack == CSTACK_VM) {
             num_frames += StackWalker::walkVM(ucontext, frames + num_frames, _max_stack_depth, VM_NORMAL);
         } else {
@@ -668,8 +667,6 @@ u64 Profiler::recordSample(void* ucontext, u64 counter, EventType event_type, Ev
         } else {
             num_frames += getJavaTraceAsync(ucontext, frames + num_frames, _max_stack_depth, &java_ctx);
         }
-    } else if (event_type == MALLOC_SAMPLE) {
-        num_frames += getJavaTraceAsync(ucontext, frames + num_frames, _max_stack_depth, &java_ctx);
     } else {
         // Lock events and instrumentation events can safely call synchronous JVM TI stack walker.
         // Skip Instrument.recordSample() method
@@ -965,24 +962,24 @@ void Profiler::updateNativeThreadNames() {
 }
 
 bool Profiler::excludeTrace(FrameName* fn, CallTrace* trace) {
-    bool checkInclude = fn->hasIncludeList();
-    bool checkExclude = fn->hasExcludeList();
-    if (!(checkInclude || checkExclude)) {
+    bool check_include = fn->hasIncludeList();
+    bool check_exclude = fn->hasExcludeList();
+    if (!(check_include || check_exclude)) {
         return false;
     }
 
     for (int i = 0; i < trace->num_frames; i++) {
         const char* frame_name = fn->name(trace->frames[i], true);
-        if (checkExclude && fn->exclude(frame_name)) {
+        if (check_exclude && fn->exclude(frame_name)) {
             return true;
         }
-        if (checkInclude && fn->include(frame_name)) {
-            checkInclude = false;
-            if (!checkExclude) break;
+        if (check_include && fn->include(frame_name)) {
+            check_include = false;
+            if (!check_exclude) break;
         }
     }
 
-    return checkInclude;
+    return check_include;
 }
 
 Engine* Profiler::selectEngine(const char* event_name) {
@@ -1170,7 +1167,7 @@ Error Profiler::start(Arguments& args, bool reset) {
         return Error("DWARF unwinding is not supported on this platform");
     } else if (_cstack == CSTACK_LBR && _engine != &perf_events) {
         return Error("Branch stack is supported only with PMU events");
-    } else if (_cstack >= CSTACK_VM && !VMStructs::hasStackStructs()) {
+    } else if (_cstack >= CSTACK_VM && VM::loaded() && !VMStructs::hasStackStructs()) {
         return Error("VMStructs stack walking is not supported on this JVM/platform");
     }
 
@@ -1336,7 +1333,7 @@ Error Profiler::check(Arguments& args) {
             return Error("DWARF unwinding is not supported on this platform");
         } else if (args._cstack == CSTACK_LBR && _engine != &perf_events) {
             return Error("Branch stack is supported only with PMU events");
-        } else if (args._cstack >= CSTACK_VM && !VMStructs::hasStackStructs()) {
+        } else if (args._cstack >= CSTACK_VM && VM::loaded() && !VMStructs::hasStackStructs()) {
             return Error("VMStructs stack walking is not supported on this JVM/platform");
         }
     }
@@ -1664,43 +1661,36 @@ void Profiler::dumpOtlp(Writer& out, Arguments& args) {
     std::vector<CallTraceSample*> call_trace_samples;
     _call_trace_storage.collectSamples(call_trace_samples);
 
-    struct SampleInfo {
-        u64 counter;
-        u64 samples;
-        size_t num_frames;
-    };
-    std::vector<SampleInfo> samples_info;
-    samples_info.reserve(call_trace_samples.size());
+    std::vector<size_t> location_indices;
+    location_indices.reserve(call_trace_samples.size());
 
     FrameName fn(args, args._style & ~STYLE_ANNOTATE, _epoch, _thread_names_lock, _thread_names);
-    protobuf_mark_t location_indices_mark = otlp_buffer.startMessage(Profile::location_indices);
+    size_t frames_seen = 0;
     for (const auto& cts : call_trace_samples) {
         CallTrace* trace = cts->acquireTrace();
         if (trace == NULL || excludeTrace(&fn, trace) || cts->samples == 0) continue;
 
-        samples_info.push_back(SampleInfo{cts->samples, cts->counter, (size_t)trace->num_frames});
-        for (int j = 0; j < trace->num_frames; j++) {
-            size_t function_idx = functions.indexOf(fn.name(trace->frames[j]));
-            otlp_buffer.putVarInt(function_idx);
-        }
-    }
-    otlp_buffer.commitMessage(location_indices_mark);
-
-    size_t frames_seen = 0;
-    for (const SampleInfo& si : samples_info) {
         protobuf_mark_t sample_mark = otlp_buffer.startMessage(Profile::sample, 1);
         otlp_buffer.field(Sample::locations_start_index, frames_seen);
-        otlp_buffer.field(Sample::locations_length, si.num_frames);
-
+        otlp_buffer.field(Sample::locations_length, trace->num_frames);
         protobuf_mark_t sample_value_mark = otlp_buffer.startMessage(Sample::value, 1);
-        otlp_buffer.putVarInt(si.samples);
-        otlp_buffer.putVarInt(si.counter);
+        otlp_buffer.putVarInt(cts->samples);
+        otlp_buffer.putVarInt(cts->counter);
         otlp_buffer.commitMessage(sample_value_mark);
-
         otlp_buffer.commitMessage(sample_mark);
 
-        frames_seen += si.num_frames;
+        for (int j = 0; j < trace->num_frames; j++) {
+            // To be written below in Profile.location_indices
+            location_indices.push_back(functions.indexOf(fn.name(trace->frames[j])));
+        }
+        frames_seen += trace->num_frames;
     }
+
+    protobuf_mark_t location_indices_mark = otlp_buffer.startMessage(Profile::location_indices);
+    for (size_t i : location_indices) {
+        otlp_buffer.putVarInt(i);
+    }
+    otlp_buffer.commitMessage(location_indices_mark);
 
     otlp_buffer.commitMessage(profile_mark);
     otlp_buffer.commitMessage(scope_profiles_mark);
