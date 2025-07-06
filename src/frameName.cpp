@@ -44,8 +44,6 @@ Matcher::Matcher(const Matcher& m) {
 }
 
 Matcher& Matcher::operator=(const Matcher& m) {
-    if (this == &m) return *this;
-
     free(_pattern);
 
     _type = m._type;
@@ -155,9 +153,13 @@ const char* FrameName::typeSuffix(FrameTypeId type) {
 }
 
 void FrameName::javaMethodName(jmethodID method) {
-    if (VMMethod::isStaleMethodId(method)) {
-        _str.assign("[stale_jmethodID]");
-        return;
+    if (VMStructs::hasMethodStructs()) {
+        // Workaround for JDK-8313816
+        VMMethod* vm_method = VMMethod::fromMethodID(method);
+        if (vm_method == NULL || vm_method->id() == NULL) {
+            _str.assign("[stale_jmethodID]");
+            return;
+        }
     }
 
     jclass method_class = NULL;
@@ -182,8 +184,6 @@ void FrameName::javaMethodName(jmethodID method) {
             }
             _str.append(method_sig);
         }
-    } else if (err == JVMTI_ERROR_INVALID_METHODID) {
-        _str.assign("[stale_jmethodID]");
     } else {
         char buf[32];
         snprintf(buf, sizeof(buf), "[jvmtiError %d]", err);

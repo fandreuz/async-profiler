@@ -69,30 +69,21 @@ public class Proto {
         return this;
     }
 
-    // 32 bits for the start position
-    // 32 bits for the max length byte count
-    public long startField(int index, int maxLenByteCount) {
+    public int startField(int index) {
         tag(index, 2);
-        ensureCapacity(maxLenByteCount);
-        pos += maxLenByteCount;
-        return ((long) pos << 32) | maxLenByteCount;
+        ensureCapacity(3);
+        return pos += 3;
     }
 
-    public void commitField(long mark) {
-        int messageStart = (int) (mark >> 32);
-        int maxLenByteCount = (int) mark;
-
-        int actualLength = pos - messageStart;
-        if (actualLength >= 1L << (7 * maxLenByteCount)) {
+    public void commitField(int mark) {
+        int length = pos - mark;
+        if (length >= 1 << (7 * 3)) {
             throw new IllegalArgumentException("Field too large");
         }
 
-        int lenBytesStart = messageStart - maxLenByteCount;
-        for (int i = 0; i < maxLenByteCount - 1; ++i) {
-            buf[lenBytesStart + i] = (byte) (0x80 | actualLength);
-            actualLength >>>= 7;
-        }
-        buf[lenBytesStart + maxLenByteCount - 1] = (byte) actualLength;
+        buf[mark - 3] = (byte) (0x80 | (length & 0x7f));
+        buf[mark - 2] = (byte) (0x80 | ((length >>> 7) & 0x7f));
+        buf[mark - 1] = (byte) (length >>> 14);
     }
 
     public void writeInt(int n) {
