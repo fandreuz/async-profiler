@@ -226,7 +226,7 @@ class JfrMetadata : Element {
     JfrMetadata();
 
     static Element* root() {
-        return &_root;
+        return (Element*) (Element*) &_root;
     }
 
     static const Index& strings() {
