@@ -115,8 +115,8 @@ jobs:
           merge-multiple: 'true'
       - name: Create directory structure for Maven release
         run:
-          find . -type f -depth 1 -name "async-profiler-*.tar.gz" -not -name "*debug*" -exec tar -xf {} \;
-          find . -type f -depth 1 -name "async-profiler-*.zip" -not -name "*debug*" -exec unzip {} \;
+          find . -type f -name "async-profiler-*.tar.gz" -not -name "*debug*" -exec tar -xf {} \;
+          find . -type f -name "async-profiler-*.zip" -not -name "*debug*" -exec unzip {} \;
           for file in async-profiler-*/lib/*.{so,dylib};
             arch=$(python3 -c 'import sys; print("-".join(sys.argv[1].split("/")[0].split("-")[4:]))' "$file")
             ln -s $arch "$file/.."
