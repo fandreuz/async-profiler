@@ -117,7 +117,7 @@ jobs:
         run: |
           find . -type f -name "async-profiler-*.tar.gz" -not -name "*debug*" -exec tar -xf {} \;
           find . -type f -name "async-profiler-*.zip" -not -name "*debug*" -exec unzip {} \;
-          for file in async-profiler-*/lib/*.{so,dylib};
+          for file in async-profiler-*/lib/*.{so,dylib}; do
             arch=$(python3 -c 'import sys; print("-".join(sys.argv[1].split("/")[0].split("-")[4:]))' "$file")
             ln -s $arch "$file/.."
           done
