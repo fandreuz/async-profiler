@@ -115,6 +115,7 @@ jobs:
           merge-multiple: 'true'
       - name: Create directory structure for Maven release
         run: |
+          set -x
           find . -type f -name "async-profiler-*.tar.gz" -not -name "*debug*" -exec tar -xf {} \;
           find . -type f -name "async-profiler-*.zip" -not -name "*debug*" -exec unzip {} \;
           for file in async-profiler-*/lib/*.{so,dylib}; do
