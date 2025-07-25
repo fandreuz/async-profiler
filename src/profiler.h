@@ -87,6 +87,7 @@ class Profiler {
     bool _add_event_frame;
     bool _add_thread_frame;
     bool _add_sched_frame;
+    bool _add_cpu_frame;
     bool _update_thread_names;
     volatile jvmtiEventMode _thread_events_state;
 
@@ -151,6 +152,7 @@ class Profiler {
     void dumpCollapsed(Writer& out, Arguments& args);
     void dumpFlameGraph(Writer& out, Arguments& args, bool tree);
     void dumpText(Writer& out, Arguments& args);
+    void dumpOtlp(Writer& out, Arguments& args);
 
     static Profiler* const _instance;
 

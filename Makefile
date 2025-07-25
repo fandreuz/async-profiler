@@ -1,4 +1,4 @@
-PROFILER_VERSION ?= 4.0
+PROFILER_VERSION ?= 4.1
 
 ifeq ($(COMMIT_TAG),true)
   PROFILER_VERSION := $(PROFILER_VERSION)-$(shell git rev-parse --short=8 HEAD)
@@ -6,9 +6,10 @@ else ifneq ($(COMMIT_TAG),)
   PROFILER_VERSION := $(PROFILER_VERSION)-$(COMMIT_TAG)
 endif
 
+TMP_DIR=/tmp
 COMMA=,
 PACKAGE_NAME=async-profiler-$(PROFILER_VERSION)-$(OS_TAG)-$(ARCH_TAG)
-PACKAGE_DIR=/tmp/$(PACKAGE_NAME)
+PACKAGE_DIR=$(TMP_DIR)/$(PACKAGE_NAME)
 DEBUG_PACKAGE_NAME=$(PACKAGE_NAME)-debug
 DEBUG_PACKAGE_DIR=$(PACKAGE_DIR)-debug
 
@@ -52,6 +53,8 @@ JAVAC_OPTIONS=--release $(JAVA_TARGET) -Xlint:-options
 
 TEST_LIB_DIR=build/test/lib
 TEST_BIN_DIR=build/test/bin
+TEST_DEPS_DIR=test/deps
+TEST_GEN_DIR=test/gen
 LOG_DIR=build/test/logs
 LOG_LEVEL=
 SKIP=
@@ -64,7 +67,7 @@ RESOURCES := $(wildcard src/res/*)
 JAVA_HELPER_CLASSES := $(wildcard src/helper/one/profiler/*.class)
 API_SOURCES := $(wildcard src/api/one/profiler/*.java)
 CONVERTER_SOURCES := $(shell find src/converter -name '*.java')
-TEST_SOURCES := $(shell find test -name '*.java')
+TEST_SOURCES := $(shell find test -name '*.java' ! -path 'test/stubs/*')
 TESTS ?=
 CPP_TEST_SOURCES := test/native/testRunner.cpp $(shell find test/native -name '*Test.cpp')
 CPP_TEST_HEADER := test/native/testRunner.hpp
@@ -148,11 +151,9 @@ $(PACKAGE_NAME).tar.gz: $(PACKAGE_DIR)
 	rm -r $(DEBUG_PACKAGE_DIR)
 
 $(PACKAGE_NAME).zip: $(PACKAGE_DIR)
-	truncate -cs -`stat -f "%z" build/$(CONVERTER_JAR)` $(PACKAGE_DIR)/$(JFRCONV)
 ifneq ($(GITHUB_ACTIONS), true)
 	codesign -s "Developer ID" -o runtime --timestamp -v $(PACKAGE_DIR)/$(ASPROF) $(PACKAGE_DIR)/$(JFRCONV) $(PACKAGE_DIR)/$(LIB_PROFILER)
 endif
-	cat build/$(CONVERTER_JAR) >> $(PACKAGE_DIR)/$(JFRCONV)
 	ditto -c -k --keepParent $(PACKAGE_DIR) $@
 	rm -r $(PACKAGE_DIR)
 
@@ -177,9 +178,9 @@ build/$(ASPROF): src/main/* src/jattach/* src/fdtransfer.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEFS) -o $@ src/main/*.cpp src/jattach/*.c
 	$(STRIP) $@
 
-build/$(JFRCONV): src/launcher/* build/$(CONVERTER_JAR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEFS) -o $@ src/launcher/*.cpp
-	$(STRIP) $@
+build/$(JFRCONV): src/launcher/launcher.sh build/$(CONVERTER_JAR)
+	sed -e 's/PROFILER_VERSION/$(PROFILER_VERSION)/g' -e 's/BUILD_DATE/$(shell date "+%b %d %Y")/g' src/launcher/launcher.sh > $@
+	chmod +x $@
 	cat build/$(CONVERTER_JAR) >> $@
 
 build/$(LIB_PROFILER): $(SOURCES) $(HEADERS) $(RESOURCES) $(JAVA_HELPER_CLASSES)
@@ -226,13 +227,13 @@ build-test: build-test-cpp build-test-java
 
 build-test-libs:
 	@mkdir -p $(TEST_LIB_DIR)
-
-ifeq ($(OS_TAG),linux)
 	$(CC) -shared -fPIC -o $(TEST_LIB_DIR)/libreladyn.$(SOEXT) test/native/libs/reladyn.c
 	$(CC) -shared -fPIC -o $(TEST_LIB_DIR)/libcallsmalloc.$(SOEXT) test/native/libs/callsmalloc.c
 	$(CC) -shared -fPIC $(INCLUDES) -Isrc -o $(TEST_LIB_DIR)/libjnimalloc.$(SOEXT) test/native/libs/jnimalloc.c
 	$(CC) -shared -fPIC -o $(TEST_LIB_DIR)/libmalloc.$(SOEXT) test/native/libs/malloc.c
+	$(CC) -fno-optimize-sibling-calls -shared -fPIC $(INCLUDES) -Isrc -o $(TEST_LIB_DIR)/libjninativestacks.$(SOEXT) test/native/libs/jninativestacks.c
 
+ifeq ($(OS_TAG),linux)
 	$(CC) -c -shared -fPIC -o $(TEST_LIB_DIR)/vaddrdif.o test/native/libs/vaddrdif.c
 	$(LD) -N -shared -o $(TEST_LIB_DIR)/libvaddrdif.$(SOEXT) $(TEST_LIB_DIR)/vaddrdif.o -T test/native/libs/vaddrdif.ld
 
@@ -249,15 +250,16 @@ build-test-bins:
 	$(CC) -o $(TEST_BIN_DIR)/native_api -Isrc test/test/c/native_api.c -ldl
 	$(CC) -o $(TEST_BIN_DIR)/profile_with_dlopen -Isrc test/test/nativemem/profile_with_dlopen.c -ldl
 	$(CC) -o $(TEST_BIN_DIR)/preload_malloc -Isrc test/test/nativemem/preload_malloc.c -ldl
-	$(CXX) -o $(TEST_BIN_DIR)/non_java_app $(INCLUDES) $(CPP_TEST_INCLUDES) test/test/nonjava/non_java_app.cpp $(LIBS)
+	$(CC) -o $(TEST_BIN_DIR)/nativemem_known_lib_crash -Isrc test/test/nativemem/nativemem_known_lib_crash.c -ldl
+	$(CXX) -o $(TEST_BIN_DIR)/non_java_app -std=c++11 $(INCLUDES) $(CPP_TEST_INCLUDES) test/test/nonjava/non_java_app.cpp $(LIBS)
 
 test-cpp: build-test-cpp
 	echo "Running cpp tests..."
-	LD_LIBRARY_PATH="$(TEST_LIB_DIR)" build/test/cpptests
+	LD_LIBRARY_PATH="$(TEST_LIB_DIR)" DYLD_LIBRARY_PATH="$(TEST_LIB_DIR)" build/test/cpptests
 
 test-java: build-test-java
 	echo "Running tests against $(LIB_PROFILER)"
-	$(JAVA) "-Djava.library.path=$(TEST_LIB_DIR)" $(TEST_FLAGS) -ea -cp "build/test.jar:build/jar/*:build/lib/*" one.profiler.test.Runner $(subst $(COMMA), ,$(TESTS))
+	$(JAVA) "-Djava.library.path=$(TEST_LIB_DIR)" $(TEST_FLAGS) -ea -cp "build/$(TEST_JAR):build/jar/*:build/lib/*:$(TEST_DEPS_DIR)/*:$(TEST_GEN_DIR)/*" one.profiler.test.Runner $(subst $(COMMA), ,$(TESTS))
 
 coverage: override FAT_BINARY=false
 coverage: clean-coverage
@@ -268,10 +270,47 @@ coverage: clean-coverage
 
 test: test-cpp test-java
 
-build/$(TEST_JAR): $(TEST_SOURCES) build/$(CONVERTER_JAR)
-	mkdir -p build/test
-	$(JAVAC) -source $(JAVA_TARGET) -target $(JAVA_TARGET) -Xlint:-options -cp "build/jar/*:build/converter/*" -d build/test $(TEST_SOURCES)
-	$(JAR) cf $@ -C build/test .
+$(TEST_DEPS_DIR):
+	mkdir -p $@
+
+build/$(TEST_JAR): build/$(API_JAR) $(TEST_SOURCES) build/$(CONVERTER_JAR) $(TEST_DEPS_DIR)
+	rm -rf build/test/classes
+	mkdir -p build/test/classes
+	$(JAVAC) -source $(JAVA_TARGET) -target $(JAVA_TARGET) -Xlint:-options -XDignore.symbol.file \
+		 -implicit:none \
+		 -cp "build/jar/*:$(TEST_DEPS_DIR)/*:$(TEST_GEN_DIR)/*:test/stubs" \
+		 -d build/test/classes \
+		 $(TEST_SOURCES)
+	$(JAR) cf $@ -C build/test/classes .
+
+update-otlp-classes-jar:
+	@if [ -z "$(OTEL_PROTO_PATH)" ]; then \
+		echo "'OTEL_PROTO_PATH' is empty"; \
+		exit 1; \
+	fi
+	rm -rf $(TMP_DIR)/gen/java $(TMP_DIR)/build
+	mkdir -p $(TMP_DIR)/gen/java $(TMP_DIR)/build $(TEST_GEN_DIR)
+	cd $(OTEL_PROTO_PATH) && protoc --java_out=$(TMP_DIR)/gen/java $$(find . \
+		 -type f \
+		 -name '*.proto' \
+		 -not \( -name 'logs*.proto' -o -name 'metrics*.proto' -o -name 'trace*.proto' -o -name '*service.proto' \))
+	$(JAVAC) -source $(JAVA_TARGET) \
+		 -target $(JAVA_TARGET) \
+		 -cp $(TEST_DEPS_DIR)/* \
+		 -d $(TMP_DIR)/build \
+		 -Xlint:-options \
+		 $$(find $(TMP_DIR)/gen/java -name "*.java")
+	$(JAR) cvf $(TEST_GEN_DIR)/opentelemetry-gen-classes.jar -C $(TMP_DIR)/build .
+
+LINT_SOURCES=`ls -1 src/*.cpp src/*/*.cpp | grep -v rustDemangle.cpp`
+CLANG_TIDY_ARGS_EXTRA=
+cpp-lint:
+	clang-tidy $(LINT_SOURCES) $(CLANG_TIDY_ARGS_EXTRA) -- -x c++ $(CXXFLAGS) $(INCLUDES) $(DEFS) $(LIBS)
+
+DIFF_BASE=
+cpp-lint-diff:
+	git diff -U0 $(DIFF_BASE) -- 'src/*.cpp' 'src/**/*.cpp' 'src/*.h' 'src/**/*.h' ':!**/rustDemangle.cpp' | \
+		clang-tidy-diff.py -p1 $(CLANG_TIDY_ARGS_EXTRA) -- -x c++ $(CXXFLAGS) $(INCLUDES) $(DEFS) $(LIBS)
 
 check-md:
 	prettier -c README.md "docs/**/*.md"

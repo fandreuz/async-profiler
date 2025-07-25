@@ -18,6 +18,8 @@ const intptr_t MAX_FRAME_SIZE = 0x40000;
 const intptr_t MAX_INTERPRETER_FRAME_SIZE = 0x1000;
 const intptr_t DEAD_ZONE = 0x1000;
 
+static ucontext_t empty_ucontext{};
+
 
 static inline bool aligned(uintptr_t ptr) {
     return (ptr & (sizeof(uintptr_t) - 1)) == 0;
@@ -53,10 +55,7 @@ static inline void fillFrame(ASGCT_CallFrame& frame, FrameTypeId type, int bci, 
 
 static jmethodID getMethodId(VMMethod* method) {
     if (!inDeadZone(method) && aligned((uintptr_t)method)) {
-        jmethodID method_id = method->id();
-        if (!inDeadZone(method_id) && aligned((uintptr_t)method_id) && VMMethod::fromMethodID(method_id) == method) {
-            return method_id;
-        }
+        return method->validatedId();
     }
     return NULL;
 }
@@ -169,6 +168,7 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
             break;
         }
 
+        const void* prev_pc = pc; 
         if (f->fp_off & DW_PC_OFFSET) {
             pc = (const char*)pc + (f->fp_off >> 1);
         } else {
@@ -193,7 +193,7 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
             }
         }
 
-        if (inDeadZone(pc)) {
+        if (inDeadZone(pc) || (pc == prev_pc && sp == prev_sp)) {
             break;
         }
     }
@@ -203,7 +203,7 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
 
 int StackWalker::walkVM(void* ucontext, ASGCT_CallFrame* frames, int max_depth, StackDetail detail) {
     if (ucontext == NULL) {
-        return walkVM(ucontext, frames, max_depth, detail,
+        return walkVM(&empty_ucontext, frames, max_depth, detail,
                       callerPC(), (uintptr_t)callerSP(), (uintptr_t)callerFP());
     } else {
         StackFrame frame(ucontext);
@@ -411,6 +411,7 @@ int StackWalker::walkVM(void* ucontext, ASGCT_CallFrame* frames, int max_depth,
             break;
         }
 
+        const void* prev_pc = pc; 
         if (f->fp_off & DW_PC_OFFSET) {
             pc = (const char*)pc + (f->fp_off >> 1);
         } else {
@@ -435,7 +436,7 @@ int StackWalker::walkVM(void* ucontext, ASGCT_CallFrame* frames, int max_depth,
             }
         }
 
-        if (inDeadZone(pc)) {
+        if (inDeadZone(pc) || (pc == prev_pc && sp == prev_sp)) {
             break;
         }
     }

@@ -20,6 +20,7 @@ bool VMStructs::_has_stack_structs = false;
 bool VMStructs::_has_class_loader_data = false;
 bool VMStructs::_has_native_thread_id = false;
 bool VMStructs::_has_perm_gen = false;
+bool VMStructs::_can_dereference_jmethod_id = false;
 bool VMStructs::_compact_object_headers = false;
 
 int VMStructs::_klass_name_offset = -1;
@@ -519,6 +520,9 @@ void VMStructs::resolveOffsets() {
             && _thread_exception_offset >= 0
             && _constmethod_size >= 0;
 
+    // Since JDK-8268406, it is no longer possible to get VMMethod* by dereferencing jmethodID
+    _can_dereference_jmethod_id = _has_method_structs && VM::hotspot_version() <= 25;
+
     if (_code_heap_addr != NULL && _code_heap_low_addr != NULL && _code_heap_high_addr != NULL) {
         char* code_heaps = *_code_heap_addr;
         unsigned int code_heap_count = *(unsigned int*)(code_heaps + _array_len_offset);
@@ -635,6 +639,15 @@ int VMThread::nativeThreadId(JNIEnv* jni, jthread thread) {
     return VM::isOpenJ9() ? J9Ext::GetOSThreadID(thread) : -1;
 }
 
+int VMThread::osThreadId() {
+    const char* osthread = *(const char**) at(_thread_osthread_offset);
+    if (osthread != NULL) {
+        // Java thread may be in the middle of termination, and its osthread structure just released
+        return SafeAccess::load32((u32*)(osthread + _osthread_id_offset), (u32)-1);
+    }
+    return -1;
+}
+
 jmethodID VMMethod::id() {
     // We may find a bogus NMethod during stack walking, it does not always point to a valid VMMethod
     const char* const_method = (const char*) SafeAccess::load((void**) at(_method_constmethod_offset));
@@ -651,6 +664,16 @@ jmethodID VMMethod::id() {
             if (ids != NULL && num < (size_t)ids[0]) {
                 return ids[num + 1];
             }
+        }
+    }
+    return NULL;
+}
+
+jmethodID VMMethod::validatedId() {
+    jmethodID method_id = id();
+    if (goodPtr(method_id)) {
+        if (!_can_dereference_jmethod_id || *(VMMethod**)method_id == this) {
+            return method_id;
         }
     }
     return NULL;

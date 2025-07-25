@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <assert.h>
 #include <map>
 #include <string>
 #include <arpa/inet.h>
@@ -58,7 +59,7 @@ static jmethodID _start_method;
 static jmethodID _stop_method;
 static jmethodID _box_method;
 
-static const char* const SETTING_CSTACK[] = {NULL, "no", "fp", "dwarf", "lbr", "vm"};
+static const char* const SETTING_CSTACK[] = {NULL, "no", "fp", "dwarf", "lbr", "vm", "vmx"};
 
 
 struct CpuTime {
@@ -173,31 +174,24 @@ class Lookup {
     }
 
     bool fillJavaMethodInfo(MethodInfo* mi, jmethodID method, bool first_time) {
-        if (VMStructs::hasMethodStructs()) {
-            // Workaround for JDK-8313816
-            VMMethod* vm_method = VMMethod::fromMethodID(method);
-            if (vm_method == NULL || vm_method->id() == NULL) {
-                return false;
-            }
+        if (VMMethod::isStaleMethodId(method)) {
+            return false;
         }
-
-        jvmtiEnv* jvmti = VM::jvmti();
 
         jclass method_class = NULL;
         char* class_name = NULL;
         char* method_name = NULL;
         char* method_sig = NULL;
 
-        if (jvmti->GetMethodName(method, &method_name, &method_sig, NULL) == 0 &&
-            jvmti->GetMethodDeclaringClass(method, &method_class) == 0 &&
-            jvmti->GetClassSignature(method_class, &class_name, NULL) == 0) {
+        jvmtiEnv* jvmti = VM::jvmti();
+        jvmtiError err;
+
+        if ((err = jvmti->GetMethodName(method, &method_name, &method_sig, NULL)) == 0 &&
+            (err = jvmti->GetMethodDeclaringClass(method, &method_class)) == 0 &&
+            (err = jvmti->GetClassSignature(method_class, &class_name, NULL)) == 0) {
             mi->_class = _classes->lookup(class_name + 1, strlen(class_name) - 2);
             mi->_name = _symbols.lookup(method_name);
             mi->_sig = _symbols.lookup(method_sig);
-        } else {
-            mi->_class = _classes->lookup("");
-            mi->_name = _symbols.lookup("jvmtiError");
-            mi->_sig = _symbols.lookup("()L;");
         }
 
         if (method_class) {
@@ -206,6 +200,10 @@ class Lookup {
         jvmti->Deallocate((unsigned char*)method_sig);
         jvmti->Deallocate((unsigned char*)method_name);
         jvmti->Deallocate((unsigned char*)class_name);
+
+        if (err != 0) {
+            return false;
+        }
 
         if (first_time && jvmti->GetMethodModifiers(method, &mi->_modifiers) != 0) {
             mi->_modifiers = 0;
@@ -261,6 +259,10 @@ class Lookup {
                 fillNativeMethodInfo(mi, buf, NULL);
             } else if (frame.bci == BCI_ERROR) {
                 fillNativeMethodInfo(mi, (const char*)method, NULL);
+            } else if (frame.bci == BCI_CPU) {
+                char buf[32];
+                snprintf(buf, sizeof(buf), "CPU-%d", ((int)(uintptr_t)method) & 0x7fff);
+                fillNativeMethodInfo(mi, buf, NULL);
             } else {
                 fillJavaClassInfo(mi, (uintptr_t)method);
             }
@@ -774,11 +776,11 @@ class Recording {
         buf->putVar32(0);
         buf->putVar32(0x7fffffff);  // must not clash with JFR metadata ID, or 'jfr print' will break
 
-        std::vector<std::string>& strings = JfrMetadata::strings();
+        const Index& strings = JfrMetadata::strings();
         buf->putVar32(strings.size());
-        for (int i = 0; i < strings.size(); i++) {
-            buf->putUtf8(strings[i].c_str());
-        }
+        strings.forEachOrdered([&] (const std::string& s) {
+            buf->putUtf8(s.c_str());
+        });
 
         writeElement(buf, JfrMetadata::root());
 
@@ -815,6 +817,7 @@ class Recording {
     }
 
     void writeSettings(Buffer* buf, Arguments& args) {
+        assert(args._cstack < sizeof(SETTING_CSTACK) / sizeof(char*));
         writeStringSetting(buf, T_ACTIVE_RECORDING, "version", PROFILER_VERSION);
         writeStringSetting(buf, T_ACTIVE_RECORDING, "engine", Profiler::instance()->_engine->type());
         writeStringSetting(buf, T_ACTIVE_RECORDING, "cstack", SETTING_CSTACK[args._cstack]);

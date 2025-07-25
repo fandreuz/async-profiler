@@ -44,6 +44,8 @@ Matcher::Matcher(const Matcher& m) {
 }
 
 Matcher& Matcher::operator=(const Matcher& m) {
+    if (this == &m) return *this;
+
     free(_pattern);
 
     _type = m._type;
@@ -153,13 +155,9 @@ const char* FrameName::typeSuffix(FrameTypeId type) {
 }
 
 void FrameName::javaMethodName(jmethodID method) {
-    if (VMStructs::hasMethodStructs()) {
-        // Workaround for JDK-8313816
-        VMMethod* vm_method = VMMethod::fromMethodID(method);
-        if (vm_method == NULL || vm_method->id() == NULL) {
-            _str.assign("[stale_jmethodID]");
-            return;
-        }
+    if (VMMethod::isStaleMethodId(method)) {
+        _str.assign("[stale_jmethodID]");
+        return;
     }
 
     jclass method_class = NULL;
@@ -184,6 +182,8 @@ void FrameName::javaMethodName(jmethodID method) {
             }
             _str.append(method_sig);
         }
+    } else if (err == JVMTI_ERROR_INVALID_METHODID) {
+        _str.assign("[stale_jmethodID]");
     } else {
         char buf[32];
         snprintf(buf, sizeof(buf), "[jvmtiError %d]", err);
@@ -301,6 +301,13 @@ const char* FrameName::name(ASGCT_CallFrame& frame, bool for_matching) {
         case BCI_ERROR:
             return _str.assign("[").append((const char*)frame.method_id).append("]").c_str();
 
+        case BCI_CPU: {
+            int cpu = ((int)(uintptr_t)frame.method_id) & 0x7fff;
+            char buf[32];
+            snprintf(buf, sizeof(buf), "[CPU-%d]", cpu);
+            return _str.assign(buf).c_str();
+        }
+
         default: {
             const char* type_suffix = typeSuffix(FrameType::decode(frame.bci));
 
@@ -354,6 +361,7 @@ FrameTypeId FrameName::type(ASGCT_CallFrame& frame) {
         case BCI_THREAD_ID:
         case BCI_ADDRESS:
         case BCI_ERROR:
+        case BCI_CPU:
             return FRAME_NATIVE;
 
         default:

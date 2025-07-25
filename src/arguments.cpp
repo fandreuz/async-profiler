@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "arguments.h"
+#include "os.h"
 
 
 // Arguments of the last start/resume command; reused for shutdown and restart
@@ -68,6 +69,7 @@ static const Multiplier UNIVERSAL[] = {{'n', 1}, {'u', 1000}, {'m', 1000000}, {'
 //     jfrsync[=CONFIG] - start Java Flight Recording with the given config along with the profiler
 //     traces[=N]       - dump top N call traces
 //     flat[=N]         - dump top N methods (aka flat profile)
+//     otlp             - dump in OpenTelemetry format
 //     samples          - count the number of samples (default)
 //     total            - count the total value (time, bytes, etc.) instead of samples
 //     chunksize=N      - approximate size of JFR chunk in bytes (default: 100 MB)
@@ -93,6 +95,7 @@ static const Multiplier UNIVERSAL[] = {{'n', 1}, {'u', 1000}, {'m', 1000000}, {'
 //     alluser          - include only user-mode events
 //     fdtransfer       - use fdtransfer to pass fds to the profiler
 //     target-cpu=CPU   - sample threads on a specific CPU (perf_events only, default: -1)
+//     record-cpu       - record which cpu a sample was taken on
 //     simple           - simple class names instead of FQN
 //     dot              - dotted class names
 //     norm             - normalize names of hidden classes / lambdas
@@ -105,6 +108,7 @@ static const Multiplier UNIVERSAL[] = {{'n', 1}, {'u', 1000}, {'m', 1000000}, {'
 //     begin=FUNCTION   - begin profiling when FUNCTION is executed
 //     end=FUNCTION     - end profiling when FUNCTION is executed
 //     nostop           - do not stop profiling outside --begin/--end window
+//     ttsp             - only time-to-safepoint profiling
 //     title=TITLE      - FlameGraph title
 //     minwidth=PCT     - FlameGraph minimum frame width in percent
 //     reverse          - generate stack-reversed FlameGraph / Call tree (defaults to icicle graph)
@@ -197,6 +201,9 @@ Error Arguments::parse(const char* args) {
                 _output = OUTPUT_TEXT;
                 _dump_flat = value == NULL ? INT_MAX : atoi(value);
 
+            CASE("otlp")
+                _output = OUTPUT_OTLP;
+
             CASE("samples")
                 _counter = COUNTER_SAMPLES;
 
@@ -223,7 +230,7 @@ Error Arguments::parse(const char* args) {
                     if (_nativemem < 0) _nativemem = 0;
                 } else if (strcmp(value, EVENT_LOCK) == 0) {
                     if (_lock < 0) _lock = DEFAULT_LOCK_INTERVAL;
-                } else if (_event != NULL) {
+                } else if (_event != NULL && !_all) {
                     msg = "Duplicate event argument";
                 } else {
                     _event = value;
@@ -250,7 +257,7 @@ Error Arguments::parse(const char* args) {
                 _nofree = true;
 
             CASE("lock")
-                _lock = value == NULL ? 0 : parseUnits(value, NANOS);
+                _lock = value == NULL ? DEFAULT_LOCK_INTERVAL : parseUnits(value, NANOS);
 
             CASE("wall")
                 _wall = value == NULL ? 0 : parseUnits(value, NANOS);
@@ -259,6 +266,25 @@ Error Arguments::parse(const char* args) {
                 if (_event != NULL) {
                     msg = "Duplicate event argument";
                 } else {
+                    _event = EVENT_CPU;
+                }
+
+            CASE("all")
+                _all = true;
+                _live = true;
+                if (_wall < 0) {
+                    _wall = 0;
+                }
+                if (_alloc < 0) {
+                    _alloc = 0;
+                }
+                if (_lock < 0) {
+                    _lock = DEFAULT_LOCK_INTERVAL;
+                }
+                if (_nativemem < 0) {
+                    _nativemem = DEFAULT_ALLOC_INTERVAL;
+                }
+                if (_event == NULL && OS::isLinux()) {
                     _event = EVENT_CPU;
                 }
 
@@ -348,6 +374,9 @@ Error Arguments::parse(const char* args) {
 
             CASE("sched")
                 _sched = true;
+            
+            CASE("record-cpu")
+                _record_cpu = true;
 
             CASE("live")
                 _live = true;
@@ -419,6 +448,13 @@ Error Arguments::parse(const char* args) {
 
             CASE("nostop")
                 _nostop = true;
+
+            CASE("ttsp")
+                if (_begin != NULL || _end != NULL) {
+                    msg = "begin and end must both be empty when ttsp is set";
+                }
+                _begin = "SafepointSynchronize::begin";
+                _end = "RuntimeService::record_safepoint_synchronized";
 
             // FlameGraph options
             CASE("title")

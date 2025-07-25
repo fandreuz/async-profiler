@@ -96,10 +96,6 @@ public class Runner {
         return Integer.parseInt(prop);
     }
 
-    private static boolean enabled(RunnableTest rt, TestDeclaration decl) {
-        return rt.test().enabled() && decl.matches(rt.method());
-    }
-
     private static boolean applicable(Test test) {
         Os[] os = test.os();
         Arch[] arch = test.arch();
@@ -112,7 +108,7 @@ public class Runner {
     }
 
     private static TestResult run(RunnableTest rt, TestDeclaration decl) {
-        if (!enabled(rt, decl)) {
+        if (!rt.test().enabled() || decl.skips(rt.method())) {
             return TestResult.skipDisabled();
         }
         if (!applicable(rt.test())) {
@@ -127,6 +123,9 @@ public class Runner {
                     rt.method().getDeclaringClass().getDeclaredConstructor().newInstance() : null;
             rt.method().invoke(holder, p);
         } catch (InvocationTargetException e) {
+            if (e.getTargetException() instanceof NoClassDefFoundError) {
+                return TestResult.skipMissingJar();
+            }
             return TestResult.fail(e.getTargetException());
         } catch (Throwable e) {
             return TestResult.fail(e);
@@ -170,6 +169,7 @@ public class Runner {
         System.out.println("FAIL: " + fail);
         System.out.println("SKIP (disabled): " + statusCounts.getOrDefault(TestStatus.SKIP_DISABLED, 0));
         System.out.println("SKIP (config mismatch): " + statusCounts.getOrDefault(TestStatus.SKIP_CONFIG_MISMATCH, 0));
+        System.out.println("SKIP (missing JAR): " + statusCounts.getOrDefault(TestStatus.SKIP_MISSING_JAR, 0));
         System.out.println("TOTAL: " + testCount);
     }
 

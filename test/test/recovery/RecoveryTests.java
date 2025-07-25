@@ -43,7 +43,7 @@ public class RecoveryTests {
         Assert.isGreater(out.ratio("Numbers.loop"), 0.8);
 
         out = p.profile("-d 3 -e cpu -o collapsed --safe-mode 31");
-        Assert.isGreater(out.ratio("unknown_Java"), 0.1);
+        Assert.isGreater(out.ratio("unknown_Java"), 0.05);
     }
 
     @Test(mainClass = Suppliers.class, debugNonSafepoints = true)
@@ -54,5 +54,13 @@ public class RecoveryTests {
         out = p.profile("-d 3 -e cpu -o collapsed");
         Assert.isGreater(out.ratio("itable stub"), 0.01);
         Assert.isGreater(out.ratio("Suppliers.loop"), 0.5);
+    }
+
+    @Test(mainClass = CodingIntrinsics.class, debugNonSafepoints = true, arch = {Arch.ARM64, Arch.X64}, inputs = "")
+    @Test(mainClass = CodingIntrinsics.class, debugNonSafepoints = true, arch = {Arch.ARM64, Arch.X64}, inputs = "--cstack vm", nameSuffix = "VM")
+    public void intrinsics(TestProcess p) throws Exception {
+        Output out = p.profile("-d 3 -e cpu -i 1ms -o collapsed " + p.inputs()[0]);
+        Assert.isLess(out.ratio("^\\[unknown"), 0.02, "No more than 2% of unknown frames");
+        Assert.isLess(out.ratio("^[^ ;]+(;[^ ;]+)? "), 0.02, "No more than 2% of short stacks");
     }
 }

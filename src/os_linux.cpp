@@ -8,8 +8,10 @@
 #include <arpa/inet.h>
 #include <byteswap.h>
 #include <dirent.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <link.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -265,6 +267,7 @@ SigAction OS::replaceCrashHandler(SigAction action) {
     sigaction(SIGSEGV, NULL, &sa);
     SigAction old_action = sa.sa_sigaction;
     sa.sa_sigaction = action;
+    sa.sa_flags |= SA_SIGINFO | SA_RESTART;
     sigaction(SIGSEGV, &sa, NULL);
     return old_action;
 }
@@ -350,10 +353,10 @@ u64 OS::getTotalCpuTime(u64* utime, u64* stime) {
     }
 
     u64 real = (u64)-1;
-    char buf[512];
+    char buf[128] = {0};
     if (read(fd, buf, sizeof(buf)) >= 12) {
         u64 user, nice, system, idle;
-        if (sscanf(buf + 4, "%llu %llu %llu  %llu", &user, &nice, &system, &idle) == 4) {
+        if (sscanf(buf + 4, "%llu %llu %llu %llu", &user, &nice, &system, &idle) == 4) {
             *utime = user + nice;
             *stime = system;
             real = user + nice + system + idle;
@@ -381,6 +384,50 @@ void OS::copyFile(int src_fd, int dst_fd, off_t offset, size_t size) {
 
 void OS::freePageCache(int fd, off_t start_offset) {
     posix_fadvise(fd, start_offset & ~page_mask, 0, POSIX_FADV_DONTNEED);
+}
+
+int OS::mprotect(void* addr, size_t size, int prot) {
+    return ::mprotect(addr, size, prot);
+}
+
+static int checkPreloadedCallback(dl_phdr_info* info, size_t size, void* data) {
+    Dl_info* dl_info = (Dl_info*)data;
+
+    Dl_info libprofiler = dl_info[0];
+    Dl_info libc = dl_info[1];
+
+    if ((void*)info->dlpi_addr == libprofiler.dli_fbase) {
+        // async-profiler found first
+        return 1;
+    } else if ((void*)info->dlpi_addr == libc.dli_fbase) {
+        // libc found first
+        return -1;
+    }
+
+    return 0;
+}
+
+// Checks if async-profiler is preloaded through the LD_PRELOAD mechanism.
+// This is done by analyzing the order of loaded dynamic libraries.
+bool OS::checkPreloaded() {
+    if (getenv("LD_PRELOAD") == NULL) {
+        return false;
+    }
+
+    // Find async-profiler shared object
+    Dl_info libprofiler;
+    if (dladdr((const void*)OS::checkPreloaded, &libprofiler) == 0) {
+        return false;
+    }
+
+    // Find libc shared object
+    Dl_info libc;
+    if (dladdr((const void*)exit, &libc) == 0) {
+        return false;
+    }
+
+    Dl_info info[2] = {libprofiler, libc};
+    return dl_iterate_phdr(checkPreloadedCallback, (void*)info) == 1;
 }
 
 #endif // __linux__

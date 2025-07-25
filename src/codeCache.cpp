@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include "codeCache.h"
 #include "dwarf.h"
+#include "log.h"
 #include "os.h"
 
 
@@ -28,19 +29,22 @@ size_t NativeFunc::usedMemory(const char* name) {
 }
 
 
-CodeCache::CodeCache(const char* name, short lib_index, bool imports_patchable,
-                     const void* min_address, const void* max_address) {
+CodeCache::CodeCache(const char* name, short lib_index,
+                     const void* min_address, const void* max_address,
+                     const char* image_base) {
     _name = NativeFunc::create(name, -1);
+
     _lib_index = lib_index;
     _min_address = min_address;
     _max_address = max_address;
     _text_base = NULL;
+    _image_base = image_base;
 
     _plt_offset = 0;
     _plt_size = 0;
 
     memset(_imports, 0, sizeof(_imports));
-    _imports_patchable = imports_patchable;
+    _imports_patchable = false;
     _debug_symbols = false;
 
     _dwarf_table = NULL;
@@ -234,15 +238,13 @@ void CodeCache::addImport(void** entry, const char* name) {
 void** CodeCache::findImport(ImportId id) {
     if (!_imports_patchable) {
         makeImportsPatchable();
-        _imports_patchable = true;
     }
     return _imports[id][PRIMARY];
 }
 
 void CodeCache::patchImport(ImportId id, void* hook_func) {
-    if (!_imports_patchable) {
-        makeImportsPatchable();
-        _imports_patchable = true;
+    if (!_imports_patchable && !makeImportsPatchable()) {
+        return;
     }
 
     for (int ty = 0; ty < NUM_IMPORT_TYPES; ty++) {
@@ -253,7 +255,7 @@ void CodeCache::patchImport(ImportId id, void* hook_func) {
     }
 }
 
-void CodeCache::makeImportsPatchable() {
+bool CodeCache::makeImportsPatchable() {
     void** min_import = (void**)-1;
     void** max_import = NULL;
     for (int i = 0; i < NUM_IMPORTS; i++) {
@@ -268,8 +270,14 @@ void CodeCache::makeImportsPatchable() {
     if (max_import != NULL) {
         uintptr_t patch_start = (uintptr_t)min_import & ~OS::page_mask;
         uintptr_t patch_end = (uintptr_t)max_import & ~OS::page_mask;
-        mprotect((void*)patch_start, patch_end - patch_start + OS::page_size, PROT_READ | PROT_WRITE);
+        if (OS::mprotect((void*)patch_start, patch_end - patch_start + OS::page_size, PROT_READ | PROT_WRITE) != 0) {
+            Log::warn("Could not patch %s", name());
+            return false;
+        }
     }
+
+    _imports_patchable = true;
+    return true;
 }
 
 void CodeCache::setDwarfTable(FrameDesc* table, int length) {

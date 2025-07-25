@@ -2,15 +2,15 @@
 
 async-profiler provides `jfrconv` utility to convert between different profile output formats.
 `jfrconv` can be found at the same location as the `asprof` binary. Converter is also available
-as a standalone Java application: [`jfr-converter.jar`](https://github.com/async-profiler/async-profiler/releases/download/v4.0/jfr-converter.jar).
+as a standalone Java application: [`jfr-converter.jar`](https://github.com/async-profiler/async-profiler/releases/download/v4.1/jfr-converter.jar).
 
 ## Supported conversions
 
-| Source    | html | collapsed | pprof | pb.gz | heatmap |
-| --------- | ---- | --------- | ----- | ----- | ------- |
-| jfr       | ✅   | ✅        | ✅    | ✅    | ✅      |
-| html      | ✅   | ✅        | ❌    | ❌    | ❌      |
-| collapsed | ✅   | ✅        | ❌    | ❌    | ❌      |
+| Source    | html | collapsed | pprof | pb.gz | heatmap | otlp |
+| --------- | ---- | --------- | ----- | ----- | ------- | ---- |
+| jfr       | ✅   | ✅        | ✅    | ✅    | ✅      | ✅   |
+| html      | ✅   | ✅        | ❌    | ❌    | ❌      | ❌   |
+| collapsed | ✅   | ✅        | ❌    | ❌    | ❌      | ❌   |
 
 ## Usage
 
@@ -34,12 +34,14 @@ Conversion options:
           usage like CPU and memory for the application.
 
   # pprof: pprof is a profiling visualization and analysis tool from Google. More details on
-           pprof  on the official github page https://github.com/google/pprof.
+           pprof on the official github page https://github.com/google/pprof.
 
   # pb.gz: This is a compressed version of pprof output.
 
   # heatmap: A single page interactive heatmap that allows to explore profiling events
              on a timeline.
+
+  # otlp: OpenTelemetry profile format.
 
 
 JFR options:
@@ -49,6 +51,7 @@ JFR options:
     --live             Build allocation profile from live objects only during conversion
     --nativemem        Generate native memory allocation profile
     --leak             Only include memory leaks in nativemem
+    --tail RATIO       Ignore tail allocations for leak profiling (10% by default)
     --lock             Generate only Lock contention profile during conversion
  -t --threads          Split stack traces by threads
  -s --state LIST       Filter thread states: runnable, sleeping, default. State name is case insensitive
