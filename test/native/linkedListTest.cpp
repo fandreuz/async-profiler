@@ -7,11 +7,11 @@
 #include "testRunner.hpp"
 
 TEST_CASE(LinkedList_insert8) {
-    LinkedListNode* node3 = new LinkedListNode(nullptr, 3);
-    LinkedListNode* node2 = new LinkedListNode(node3, 2);
-    LinkedListNode* node1 = new LinkedListNode(node2, 1);
+    LinkedListNode<u8>* node3 = new LinkedListNode<u8>(nullptr, 3);
+    LinkedListNode<u8>* node2 = new LinkedListNode<u8>(node3, 2);
+    LinkedListNode<u8>* node1 = new LinkedListNode<u8>(node2, 1);
 
-    insert8(node2, 10);
+    node2->insert8(10);
 
     CHECK_EQ(node1->value, 1);
     CHECK_EQ(node1->next->value, 2);
@@ -21,11 +21,11 @@ TEST_CASE(LinkedList_insert8) {
 }
 
 TEST_CASE(LinkedList_insert16) {
-    LinkedListNode* node3 = new LinkedListNode(nullptr, 3);
-    LinkedListNode* node2 = new LinkedListNode(node3, 2);
-    LinkedListNode* node1 = new LinkedListNode(node2, 1);
+    LinkedListNode<u8>* node3 = new LinkedListNode<u8>(nullptr, 3);
+    LinkedListNode<u8>* node2 = new LinkedListNode<u8>(node3, 2);
+    LinkedListNode<u8>* node1 = new LinkedListNode<u8>(node2, 1);
 
-    insert16(node2, 5 << 8 | 6);
+    node2->insert16(5 << 8 | 6);
 
     CHECK_EQ(node1->value, 1);
     CHECK_EQ(node1->next->value, 2);
@@ -37,7 +37,7 @@ TEST_CASE(LinkedList_insert16) {
 
 TEST_CASE(LinkedList_toLinkedList) {
     u8 arr[] = {1, 2, 3, 4};
-    LinkedListNode* head = toLinkedList(arr, 4);
+    LinkedListNode<u8>* head = toLinkedList<u8>(arr, 4);
 
     CHECK_EQ(head->value, 1);
     CHECK_EQ(head->next->value, 2);
@@ -46,9 +46,8 @@ TEST_CASE(LinkedList_toLinkedList) {
     CHECK_EQ(head->next->next->next->next, nullptr);
 }
 
-
 TEST_CASE(LinkedList_destructor) {
     u8 arr[] = {1, 2, 3, 4};
-    LinkedListNode* head = toLinkedList(arr, 4);
+    LinkedListNode<u8>* head = toLinkedList(arr, 4);
     delete head;
 }
