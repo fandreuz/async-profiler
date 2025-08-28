@@ -33,11 +33,10 @@ enum StackDetail {
 };
 
 class StackWalker {
-  private:
+  public:
     static int walkVM(void* ucontext, ASGCT_CallFrame* frames, int max_depth,
                       StackDetail detail, const void* pc, uintptr_t sp, uintptr_t fp);
 
-  public:
     static int walkFP(void* ucontext, const void** callchain, int max_depth, StackContext* java_ctx);
     static int walkDwarf(void* ucontext, const void** callchain, int max_depth, StackContext* java_ctx);
     static int walkVM(void* ucontext, ASGCT_CallFrame* frames, int max_depth, StackDetail detail);

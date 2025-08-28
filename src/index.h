@@ -49,6 +49,13 @@ class Index {
         return _idx_map.size();
     }
 
+    const std::string at(size_t index) const {
+        for (const auto& entry : _idx_map) {
+            if (entry.second == index) return entry.first;
+        }
+        return "n/a";
+    }
+
     void forEachOrdered(const std::function<void(size_t idx, const std::string&)>& consumer) const {
         std::vector<const std::string*> arr(_idx_map.size());
         for (const auto& it : _idx_map) {
