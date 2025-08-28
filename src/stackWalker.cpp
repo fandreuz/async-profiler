@@ -203,15 +203,21 @@ int StackWalker::walkDwarf(void* ucontext, const void** callchain, int max_depth
     return depth;
 }
 
-extern "C" void walkAndPrintVm(uintptr_t pc, uintptr_t sp, uintptr_t fp) {
+extern "C" DLLEXPORT void walkAndPrintVm(uintptr_t pc, uintptr_t sp, uintptr_t fp) {
     ASGCT_CallFrame frames[1000];
     int depth = StackWalker::walkVM(&empty_ucontext, frames, 1000, VM_EXPERT, (const void*) pc, sp, fp);
     MethodMap method_map;
     Index strings;
     Lookup method_lookup(&method_map, Profiler::instance()->classMap(), nullptr, &strings, OUTPUT_TEXT);
     for (int i = 0; i < depth; ++i) {
+        method_lookup.resolveMethod(frames[i]);
+    }
+
+    std::map<u32, const char*> classes;
+    Profiler::instance()->classMap()->collect(classes);
+    for (int i = 0; i < depth; ++i) {
         MethodInfo* mi = method_lookup.resolveMethod(frames[i]);
-        printf("%s::%s", strings.at(mi->_class), strings.at(mi->_name));
+        printf("%s::%s\n", classes[mi->_class], strings.at(mi->_name).c_str());
     }
 }
 
