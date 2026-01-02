@@ -179,11 +179,12 @@ class VM {
         _jvmti->RelinquishCapabilities(&capabilities);
     }
 
+    static void JNICALL VMStart(jvmtiEnv* jvmti, JNIEnv* jni);
     static void JNICALL VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread);
     static void JNICALL VMDeath(jvmtiEnv* jvmti, JNIEnv* jni);
 
     static void JNICALL ClassLoad(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread, jclass klass) {
-        // Needed only for AsyncGetCallTrace support
+        VM::loadMethodIDs(jvmti, jni, klass);
     }
 
     static void JNICALL ClassPrepare(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread, jclass klass) {

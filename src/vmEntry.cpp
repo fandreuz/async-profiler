@@ -247,6 +247,7 @@ bool VM::init(JavaVM* vm, bool attach) {
     _jvmti->AddCapabilities(&capabilities);
 
     jvmtiEventCallbacks callbacks = {0};
+    callbacks.VMStart = VMStart;
     callbacks.VMInit = VMInit;
     callbacks.VMDeath = VMDeath;
     callbacks.ClassLoad = ClassLoad;
@@ -297,6 +298,7 @@ bool VM::init(JavaVM* vm, bool attach) {
         _jvmti->GenerateEvents(JVMTI_EVENT_DYNAMIC_CODE_GENERATED);
         _jvmti->GenerateEvents(JVMTI_EVENT_COMPILED_METHOD_LOAD);
     } else {
+        _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_START, NULL);
         _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_INIT, NULL);
     }
 
@@ -398,24 +400,25 @@ void VM::loadAllMethodIDs(jvmtiEnv* jvmti, JNIEnv* jni) {
     }
 }
 
-void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
+void JNICALL VM::VMStart(jvmtiEnv* jvmti, JNIEnv* jni) {
     ready();
-    loadAllMethodIDs(jvmti, jni);
-
-    // Allow profiler server only at JVM startup
-    if (_global_args._server != NULL) {
-        if (JavaAPI::startHttpServer(jvmti, jni, _global_args._server)) {
-            Log::info("Profiler server started at %s", _global_args._server);
-        } else {
-            Log::error("Failed to start profiler server");
-        }
-    }
 
     // Delayed start of profiler if agent has been loaded at VM bootstrap
     if (!_global_args._preloaded) {
         Error error = Profiler::instance()->run(_global_args);
         if (error) {
             Log::error("%s", error.message());
+        }
+    }
+}
+
+void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
+    // Allow profiler server only at JVM startup
+    if (_global_args._server != NULL) {
+        if (JavaAPI::startHttpServer(jvmti, jni, _global_args._server)) {
+            Log::info("Profiler server started at %s", _global_args._server);
+        } else {
+            Log::error("Failed to start profiler server");
         }
     }
 }
