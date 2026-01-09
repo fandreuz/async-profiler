@@ -170,7 +170,8 @@ class VM {
     static bool addSampleObjectsCapability() {
         jvmtiCapabilities capabilities = {0};
         capabilities.can_generate_sampled_object_alloc_events = 1;
-        return _jvmti->AddCapabilities(&capabilities) == 0;
+        int out = _jvmti->AddCapabilities(&capabilities);
+        return out == 0;
     }
 
     static void releaseSampleObjectsCapability() {
@@ -184,7 +185,7 @@ class VM {
     static void JNICALL VMDeath(jvmtiEnv* jvmti, JNIEnv* jni);
 
     static void JNICALL ClassLoad(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread, jclass klass) {
-        VM::loadMethodIDs(jvmti, jni, klass);
+        // Needed only for AsyncGetCallTrace support
     }
 
     static void JNICALL ClassPrepare(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread, jclass klass) {
