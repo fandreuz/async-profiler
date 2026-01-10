@@ -1244,10 +1244,10 @@ Error Profiler::start(Arguments& args, bool reset) {
     return Error::OK;
 
 error5:
-    if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
+    if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
 
 error4:
-    if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
+    if (_event_mask & EM_WALL) wall_clock.stop();
 
 error3:
     if (_event_mask & EM_LOCK) lock_tracer.stop();
