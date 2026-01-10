@@ -1202,41 +1202,28 @@ Error Profiler::start(Arguments& args, bool reset) {
         goto error1;
     }
 
-    if (_event_mask & EM_ALLOC) {
-        _alloc_engine = selectAllocEngine(args._alloc, args._live);
-        error = _alloc_engine->start(args);
-        if (error) {
-            goto error2;
-        }
-    }
     if (_event_mask & EM_LOCK) {
         error = lock_tracer.start(args);
         if (error) {
-            goto error3;
+            goto error2;
         }
     }
     if (_event_mask & EM_WALL) {
         error = wall_clock.start(args);
         if (error) {
-            goto error4;
+            goto error3;
         }
     }
     if (_event_mask & EM_NATIVEMEM) {
         error = malloc_tracer.start(args);
         if (error) {
-            goto error5;
+            goto error4;
         }
     }
     if (_event_mask & EM_NATIVELOCK) {
         error = native_lock_tracer.start(args);
         if (error) {
-            goto error6;
-        }
-    }
-    if (_event_mask & EM_METHOD_TRACE) {
-        error = instrument.start(args);
-        if (error) {
-            goto error7;
+            goto error5;
         }
     }
 
@@ -1256,20 +1243,14 @@ Error Profiler::start(Arguments& args, bool reset) {
 
     return Error::OK;
 
-error7:
-    if (_event_mask & EM_METHOD_TRACE) instrument.stop();
-
-error6:
+error5:
     if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
 
-error5:
+error4:
     if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
 
-error4:
-    if (_event_mask & EM_LOCK) lock_tracer.stop();
-
 error3:
-    if (_event_mask & EM_ALLOC) _alloc_engine->stop();
+    if (_event_mask & EM_LOCK) lock_tracer.stop();
 
 error2:
     _engine->stop();
@@ -1284,6 +1265,34 @@ error1:
 
     FdTransferClient::closePeer();
     return error;
+}
+
+Error Profiler::startLater() {
+    if (_event_mask & EM_ALLOC) {
+        _alloc_engine = selectAllocEngine(_global_args._alloc, _global_args._live);
+        Error error = _alloc_engine->start(_global_args);
+        if (error) return error;
+    }
+    if (_event_mask & EM_METHOD_TRACE) {
+        Error error = instrument.start(_global_args);
+        if (error) {
+            if (_event_mask & EM_ALLOC) {
+                _alloc_engine->stop();
+            }
+        }
+    }
+    return Error::OK;
+
+error2:
+
+error1:
+    if (_event_mask & EM_WALL) wall_clock.stop();
+    if (_event_mask & EM_LOCK) lock_tracer.stop();
+    if (_event_mask & EM_ALLOC) _alloc_engine->stop();
+    if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
+    if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
+    if (_event_mask & EM_METHOD_TRACE) instrument.stop();
+    
 }
 
 Error Profiler::stop(bool restart) {

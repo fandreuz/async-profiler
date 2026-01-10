@@ -255,8 +255,6 @@ bool VM::init(JavaVM* vm, bool attach) {
     callbacks.ClassFileLoadHook = Instrument::ClassFileLoadHook;
     callbacks.CompiledMethodLoad = Profiler::CompiledMethodLoad;
     callbacks.DynamicCodeGenerated = Profiler::DynamicCodeGenerated;
-    callbacks.ThreadStart = Profiler::ThreadStart;
-    callbacks.ThreadEnd = Profiler::ThreadEnd;
     callbacks.MonitorContendedEnter = LockTracer::MonitorContendedEnter;
     callbacks.MonitorContendedEntered = LockTracer::MonitorContendedEntered;
     callbacks.VMObjectAlloc = J9ObjectSampler::VMObjectAlloc;
@@ -413,12 +411,40 @@ void JNICALL VM::VMStart(jvmtiEnv* jvmti, JNIEnv* jni) {
 }
 
 void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
+    jvmtiEventCallbacks callbacks = {0};
+    callbacks.VMStart = VMStart;
+    callbacks.VMInit = VMInit;
+    callbacks.VMDeath = VMDeath;
+    callbacks.ClassLoad = ClassLoad;
+    callbacks.ClassPrepare = ClassPrepare;
+    callbacks.ClassFileLoadHook = Instrument::ClassFileLoadHook;
+    callbacks.CompiledMethodLoad = Profiler::CompiledMethodLoad;
+    callbacks.DynamicCodeGenerated = Profiler::DynamicCodeGenerated;
+    callbacks.ThreadStart = Profiler::ThreadStart;
+    callbacks.ThreadEnd = Profiler::ThreadEnd;
+    callbacks.MonitorContendedEnter = LockTracer::MonitorContendedEnter;
+    callbacks.MonitorContendedEntered = LockTracer::MonitorContendedEntered;
+    callbacks.VMObjectAlloc = J9ObjectSampler::VMObjectAlloc;
+    callbacks.SampledObjectAlloc = ObjectSampler::SampledObjectAlloc;
+    callbacks.GarbageCollectionStart = ObjectSampler::GarbageCollectionStart;
+    callbacks.GarbageCollectionFinish = Profiler::GarbageCollectionFinish;
+    _jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
+    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_START, NULL);
+    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_END, NULL);
+    
     // Allow profiler server only at JVM startup
     if (_global_args._server != NULL) {
         if (JavaAPI::startHttpServer(jvmti, jni, _global_args._server)) {
             Log::info("Profiler server started at %s", _global_args._server);
         } else {
             Log::error("Failed to start profiler server");
+        }
+    }
+
+    if (!_global_args._preloaded) {
+        Error error = Profiler::instance()->startLater();
+        if (error) {
+            Log::error("%s", error.message());
         }
     }
 }
