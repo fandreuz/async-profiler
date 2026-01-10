@@ -1268,22 +1268,20 @@ error1:
 }
 
 Error Profiler::startLater() {
+    Error error = Error::OK;
     if (_event_mask & EM_ALLOC) {
         _alloc_engine = selectAllocEngine(_global_args._alloc, _global_args._live);
-        Error error = _alloc_engine->start(_global_args);
-        if (error) return error;
+        error = _alloc_engine->start(_global_args);
+        if (error) goto error1;
     }
     if (_event_mask & EM_METHOD_TRACE) {
         Error error = instrument.start(_global_args);
-        if (error) {
-            if (_event_mask & EM_ALLOC) {
-                _alloc_engine->stop();
-            }
-        }
+        if (error) goto error2;
     }
     return Error::OK;
 
 error2:
+    if (_event_mask & EM_ALLOC) _alloc_engine->stop();
 
 error1:
     if (_event_mask & EM_WALL) wall_clock.stop();
@@ -1292,7 +1290,17 @@ error1:
     if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
     if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
     if (_event_mask & EM_METHOD_TRACE) instrument.stop();
-    
+    _engine->stop();
+
+    uninstallTraps();
+    switchLibraryTrap(false);
+
+    lockAll();
+    _jfr.stop();
+    unlockAll();
+
+    FdTransferClient::closePeer();
+    return error;
 }
 
 Error Profiler::stop(bool restart) {
