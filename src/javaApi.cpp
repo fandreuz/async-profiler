@@ -43,6 +43,11 @@ Java_one_profiler_AsyncProfiler_start0(JNIEnv* env, jobject unused, jstring even
     if (error) {
         throwNew(env, "java/lang/IllegalStateException", error.message());
     }
+
+    error = Profiler::instance()->startLater();
+    if (error) {
+        throwNew(env, "java/lang/IllegalStateException", error.message());
+    }
 }
 
 extern "C" DLLEXPORT void JNICALL
@@ -71,6 +76,9 @@ Java_one_profiler_AsyncProfiler_execute0(JNIEnv* env, jobject unused, jstring co
     if (!args.hasOutputFile()) {
         BufferWriter out;
         error = Profiler::instance()->runInternal(args, out);
+        if (!error && args._action == ACTION_START) {
+            error = Profiler::instance()->startLater();
+        }
         if (!error) {
             out << '\0';
             if (out.size() >= 0x3fffffff) {
@@ -86,6 +94,9 @@ Java_one_profiler_AsyncProfiler_execute0(JNIEnv* env, jobject unused, jstring co
             return NULL;
         }
         error = Profiler::instance()->runInternal(args, out);
+        if (!error && args._action == ACTION_START) {
+            error = Profiler::instance()->startLater();
+        }
         if (!error) {
             return env->NewStringUTF("OK");
         }

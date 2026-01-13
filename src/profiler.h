@@ -197,6 +197,7 @@ class Profiler {
     Error check(Arguments& args);
     Error start(Arguments& args, bool reset);
     Error startLater();
+    void stopResources();
     Error stop(bool restart = false);
     Error flushJfr();
     Error dump(Writer& out, Arguments& args);

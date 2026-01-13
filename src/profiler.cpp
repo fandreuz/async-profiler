@@ -1201,9 +1201,11 @@ Error Profiler::start(Arguments& args, bool reset) {
         }
     }
 
-    error = _engine->start(args);
-    if (error) {
-        goto error1;
+    if (_engine != &instrument) {
+        error = _engine->start(args);
+        if (error) {
+            goto error1;
+        }
     }
 
     if (_event_mask & EM_LOCK) {
@@ -1260,14 +1262,7 @@ error2:
     _engine->stop();
 
 error1:
-    uninstallTraps();
-    switchLibraryTrap(false);
-
-    lockAll();
-    _jfr.stop();
-    unlockAll();
-
-    FdTransferClient::closePeer();
+    stopResources();
     return error;
 }
 
@@ -1278,7 +1273,7 @@ Error Profiler::startLater() {
         error = _alloc_engine->start(_global_args);
         if (error) goto error1;
     }
-    if (_event_mask & EM_METHOD_TRACE) {
+    if (_engine == &instrument || _event_mask & EM_METHOD_TRACE) {
         Error error = instrument.start(_global_args);
         if (error) goto error2;
     }
@@ -1290,10 +1285,14 @@ error2:
 error1:
     if (_event_mask & EM_WALL) wall_clock.stop();
     if (_event_mask & EM_LOCK) lock_tracer.stop();
-    if (_event_mask & EM_ALLOC) _alloc_engine->stop();
     if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
     if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
-    if (_event_mask & EM_METHOD_TRACE) instrument.stop();
+
+    stopResources();
+    return error;
+}
+
+void Profiler::stopResources() {
     _engine->stop();
 
     uninstallTraps();
@@ -1304,7 +1303,6 @@ error1:
     unlockAll();
 
     FdTransferClient::closePeer();
-    return error;
 }
 
 Error Profiler::stop(bool restart) {

@@ -531,6 +531,9 @@ Agent_OnAttach(JavaVM* vm, char* options, void* reserved) {
         if (args.hasTemporaryLog()) Log::close();
         return COMMAND_ERROR;
     }
+    if (args._action == ACTION_START) {
+        Profiler::instance()->startLater();
+    }
 
     if (args._action == ACTION_STOP && args.hasTemporaryLog()) {
         // The launcher immediately deletes logs after printing
