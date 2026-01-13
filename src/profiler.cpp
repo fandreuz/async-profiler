@@ -1247,7 +1247,7 @@ Error Profiler::start(Arguments& args, bool reset) {
         startTimer();
     }
 
-    if (__atomic_load_n(&VM::afterLivePhase, __ATOMIC_SEQ_CST)) {
+    if (VM::isAfterLivePhase()) {
         return startLater();
     }
 

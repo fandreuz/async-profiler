@@ -31,7 +31,7 @@ jvmtiEnv* VM::_jvmti = NULL;
 int VM::_hotspot_version = 0;
 bool VM::_openj9 = false;
 bool VM::_zing = false;
-bool VM::afterLivePhase = false;
+bool VM::_afterLivePhase = false;
 
 bool VM::_terminating = false;
 
@@ -423,7 +423,7 @@ void JNICALL VM::VMStart(jvmtiEnv* jvmti, JNIEnv* jni) {
 }
 
 void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
-    __atomic_store_n(&VM::afterLivePhase, true, __ATOMIC_SEQ_CST);
+    setAfterLivePhase();
 
     jvmtiEventCallbacks callbacks = {0};
     prepareEventCallbacks(callbacks, true /* vminit */);
@@ -507,7 +507,7 @@ Agent_OnLoad(JavaVM* vm, char* options, void* reserved) {
 
 extern "C" DLLEXPORT jint JNICALL
 Agent_OnAttach(JavaVM* vm, char* options, void* reserved) {
-    __atomic_store_n(&VM::afterLivePhase, true, __ATOMIC_SEQ_CST);
+    VM::setAfterLivePhase();
 
     Arguments args;
     Error error = args.parse(options);
@@ -541,7 +541,7 @@ Agent_OnAttach(JavaVM* vm, char* options, void* reserved) {
 
 extern "C" DLLEXPORT jint JNICALL
 JNI_OnLoad(JavaVM* vm, void* reserved) {
-    __atomic_store_n(&VM::afterLivePhase, true, __ATOMIC_SEQ_CST);
+    VM::setAfterLivePhase();
     if (!VM::init(vm, true)) {
         return 0;
     }

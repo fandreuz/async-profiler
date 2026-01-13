@@ -107,6 +107,8 @@ class VM {
 
     static bool _terminating;
 
+    static bool _afterLivePhase;
+
     static GetCreatedJavaVMs _getCreatedJavaVMs;
 
     static jvmtiError (JNICALL *_orig_RedefineClasses)(jvmtiEnv*, jint, const jvmtiClassDefinition*);
@@ -123,7 +125,6 @@ class VM {
     static AsyncGetCallTrace _asyncGetCallTrace;
     static JVM_MemoryFunc _totalMemory;
     static JVM_MemoryFunc _freeMemory;
-    static bool afterLivePhase;
 
     static bool init(JavaVM* vm, bool attach);
 
@@ -195,6 +196,14 @@ class VM {
 
     static jvmtiError JNICALL RedefineClassesHook(jvmtiEnv* jvmti, jint class_count, const jvmtiClassDefinition* class_definitions);
     static jvmtiError JNICALL RetransformClassesHook(jvmtiEnv* jvmti, jint class_count, const jclass* classes);
+
+    static void setAfterLivePhase() {
+        __atomic_store_n(&VM::_afterLivePhase, true, __ATOMIC_RELAXED);
+    }
+
+    static bool isAfterLivePhase() {
+        return __atomic_load_n(&VM::_afterLivePhase, __ATOMIC_RELAXED);
+    }
 };
 
 #endif // _VMENTRY_H
