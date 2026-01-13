@@ -440,7 +440,7 @@ void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
     }
 
     if (!_global_args._preloaded && _global_args._action == ACTION_START) {
-        Error error = Profiler::instance()->startLater();
+        Error error = Profiler::instance()->startLivePhase();
         if (error) {
             Log::error("%s", error.message());
         }

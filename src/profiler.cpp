@@ -1248,7 +1248,7 @@ Error Profiler::start(Arguments& args, bool reset) {
     }
 
     if (VM::isAfterLivePhase()) {
-        return startLater();
+        return startLivePhase();
     }
 
     return Error::OK;
@@ -1270,7 +1270,7 @@ error1:
     return error;
 }
 
-Error Profiler::startLater() {
+Error Profiler::startLivePhase() {
     Error error = Error::OK;
     if (_event_mask & EM_ALLOC) {
         _alloc_engine = selectAllocEngine(_global_args._alloc, _global_args._live);
