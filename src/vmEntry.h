@@ -117,6 +117,7 @@ class VM {
     static void loadMethodIDs(jvmtiEnv* jvmti, JNIEnv* jni, jclass klass);
     static void loadAllMethodIDs(jvmtiEnv* jvmti, JNIEnv* jni);
     static bool hasJvmThreads();
+    static void prepareEventCallbacks(jvmtiEventCallbacks& callbacks, bool vminit);
 
   public:
     static AsyncGetCallTrace _asyncGetCallTrace;

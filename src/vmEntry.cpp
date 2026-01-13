@@ -135,6 +135,28 @@ bool VM::hasJvmThreads() {
     return threads_found == 3;
 }
 
+void VM::prepareEventCallbacks(jvmtiEventCallbacks& callbacks, bool vminit) {
+    callbacks.VMStart = VMStart;
+    callbacks.VMInit = VMInit;
+    callbacks.VMDeath = VMDeath;
+    callbacks.ClassLoad = ClassLoad;
+    callbacks.ClassPrepare = ClassPrepare;
+    callbacks.ClassFileLoadHook = Instrument::ClassFileLoadHook;
+    callbacks.CompiledMethodLoad = Profiler::CompiledMethodLoad;
+    callbacks.DynamicCodeGenerated = Profiler::DynamicCodeGenerated;
+    callbacks.MonitorContendedEnter = LockTracer::MonitorContendedEnter;
+    callbacks.MonitorContendedEntered = LockTracer::MonitorContendedEntered;
+    callbacks.VMObjectAlloc = J9ObjectSampler::VMObjectAlloc;
+    callbacks.SampledObjectAlloc = ObjectSampler::SampledObjectAlloc;
+    callbacks.GarbageCollectionStart = ObjectSampler::GarbageCollectionStart;
+    callbacks.GarbageCollectionFinish = Profiler::GarbageCollectionFinish;
+    if (vminit) {
+        // GetThreadInfo may only be called during the live phase
+        callbacks.ThreadStart = Profiler::ThreadStart;
+        callbacks.ThreadEnd = Profiler::ThreadEnd;
+    }
+}
+
 bool VM::init(JavaVM* vm, bool attach) {
     if (_jvmti != NULL) return true;
 
@@ -247,20 +269,7 @@ bool VM::init(JavaVM* vm, bool attach) {
     _jvmti->AddCapabilities(&capabilities);
 
     jvmtiEventCallbacks callbacks = {0};
-    callbacks.VMStart = VMStart;
-    callbacks.VMInit = VMInit;
-    callbacks.VMDeath = VMDeath;
-    callbacks.ClassLoad = ClassLoad;
-    callbacks.ClassPrepare = ClassPrepare;
-    callbacks.ClassFileLoadHook = Instrument::ClassFileLoadHook;
-    callbacks.CompiledMethodLoad = Profiler::CompiledMethodLoad;
-    callbacks.DynamicCodeGenerated = Profiler::DynamicCodeGenerated;
-    callbacks.MonitorContendedEnter = LockTracer::MonitorContendedEnter;
-    callbacks.MonitorContendedEntered = LockTracer::MonitorContendedEntered;
-    callbacks.VMObjectAlloc = J9ObjectSampler::VMObjectAlloc;
-    callbacks.SampledObjectAlloc = ObjectSampler::SampledObjectAlloc;
-    callbacks.GarbageCollectionStart = ObjectSampler::GarbageCollectionStart;
-    callbacks.GarbageCollectionFinish = Profiler::GarbageCollectionFinish;
+    prepareEventCallbacks(callbacks, false /* vminit */);
     _jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
 
     _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_DEATH, NULL);
@@ -268,6 +277,8 @@ bool VM::init(JavaVM* vm, bool attach) {
     _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_CLASS_PREPARE, NULL);
     _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_DYNAMIC_CODE_GENERATED, NULL);
     _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_GARBAGE_COLLECTION_FINISH, NULL);
+    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_START, NULL);
+    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_END, NULL);
 
     if (hotspot_version() == 0 || !CodeHeap::available()) {
         // Workaround for JDK-8173361: avoid CompiledMethodLoad events when possible
@@ -412,26 +423,9 @@ void JNICALL VM::VMStart(jvmtiEnv* jvmti, JNIEnv* jni) {
 
 void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
     jvmtiEventCallbacks callbacks = {0};
-    callbacks.VMStart = VMStart;
-    callbacks.VMInit = VMInit;
-    callbacks.VMDeath = VMDeath;
-    callbacks.ClassLoad = ClassLoad;
-    callbacks.ClassPrepare = ClassPrepare;
-    callbacks.ClassFileLoadHook = Instrument::ClassFileLoadHook;
-    callbacks.CompiledMethodLoad = Profiler::CompiledMethodLoad;
-    callbacks.DynamicCodeGenerated = Profiler::DynamicCodeGenerated;
-    callbacks.ThreadStart = Profiler::ThreadStart;
-    callbacks.ThreadEnd = Profiler::ThreadEnd;
-    callbacks.MonitorContendedEnter = LockTracer::MonitorContendedEnter;
-    callbacks.MonitorContendedEntered = LockTracer::MonitorContendedEntered;
-    callbacks.VMObjectAlloc = J9ObjectSampler::VMObjectAlloc;
-    callbacks.SampledObjectAlloc = ObjectSampler::SampledObjectAlloc;
-    callbacks.GarbageCollectionStart = ObjectSampler::GarbageCollectionStart;
-    callbacks.GarbageCollectionFinish = Profiler::GarbageCollectionFinish;
+    prepareEventCallbacks(callbacks, true /* vminit */);
     _jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
-    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_START, NULL);
-    _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_END, NULL);
-    
+
     // Allow profiler server only at JVM startup
     if (_global_args._server != NULL) {
         if (JavaAPI::startHttpServer(jvmti, jni, _global_args._server)) {
