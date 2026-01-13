@@ -1256,7 +1256,7 @@ error2:
     _engine->stop();
 
 error1:
-    stopResources();
+    stopCommon();
     return error;
 }
 
@@ -1287,15 +1287,14 @@ error2:
 
 error1:
     if (_event_mask & EM_WALL) wall_clock.stop();
-    if (_event_mask & EM_LOCK) lock_tracer.stop();
     if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
     if (_event_mask & EM_NATIVELOCK) native_lock_tracer.stop();
 
-    stopResources();
+    stopCommon();
     return error;
 }
 
-void Profiler::stopResources() {
+void Profiler::stopCommon() {
     _engine->stop();
 
     uninstallTraps();
