@@ -1271,6 +1271,8 @@ error1:
 }
 
 Error Profiler::startLivePhase() {
+    assert(VM::isAfterLivePhase());
+
     Error error = Error::OK;
     if (_event_mask & EM_ALLOC) {
         _alloc_engine = selectAllocEngine(_global_args._alloc, _global_args._live);
