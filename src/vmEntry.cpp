@@ -136,7 +136,7 @@ bool VM::hasJvmThreads() {
     return threads_found == 3;
 }
 
-void VM::prepareEventCallbacks(jvmtiEventCallbacks& callbacks, bool vminit) {
+void VM::prepareEventCallbacks(jvmtiEventCallbacks& callbacks) {
     callbacks.VMStart = VMStart;
     callbacks.VMInit = VMInit;
     callbacks.VMDeath = VMDeath;
@@ -151,7 +151,7 @@ void VM::prepareEventCallbacks(jvmtiEventCallbacks& callbacks, bool vminit) {
     callbacks.SampledObjectAlloc = ObjectSampler::SampledObjectAlloc;
     callbacks.GarbageCollectionStart = ObjectSampler::GarbageCollectionStart;
     callbacks.GarbageCollectionFinish = Profiler::GarbageCollectionFinish;
-    if (vminit) {
+    if (VM::isAfterLivePhase()) {
         // GetThreadInfo may only be called during the live phase
         callbacks.ThreadStart = Profiler::ThreadStart;
         callbacks.ThreadEnd = Profiler::ThreadEnd;
@@ -270,7 +270,7 @@ bool VM::init(JavaVM* vm, bool attach) {
     _jvmti->AddCapabilities(&capabilities);
 
     jvmtiEventCallbacks callbacks = {0};
-    prepareEventCallbacks(callbacks, false /* vminit */);
+    prepareEventCallbacks(callbacks);
     _jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
 
     _jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_DEATH, NULL);
@@ -427,7 +427,7 @@ void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
     setAfterLivePhase();
 
     jvmtiEventCallbacks callbacks = {0};
-    prepareEventCallbacks(callbacks, true /* vminit */);
+    prepareEventCallbacks(callbacks);
     _jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
 
     // Allow profiler server only at JVM startup
