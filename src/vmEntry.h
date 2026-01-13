@@ -123,6 +123,7 @@ class VM {
     static AsyncGetCallTrace _asyncGetCallTrace;
     static JVM_MemoryFunc _totalMemory;
     static JVM_MemoryFunc _freeMemory;
+    static bool afterLivePhase;
 
     static bool init(JavaVM* vm, bool attach);
 
