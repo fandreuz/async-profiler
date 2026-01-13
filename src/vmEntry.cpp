@@ -423,6 +423,7 @@ void JNICALL VM::VMStart(jvmtiEnv* jvmti, JNIEnv* jni) {
 }
 
 void JNICALL VM::VMInit(jvmtiEnv* jvmti, JNIEnv* jni, jthread thread) {
+    loadAllMethodIDs(jvmti, jni);
     setAfterLivePhase();
 
     jvmtiEventCallbacks callbacks = {0};
