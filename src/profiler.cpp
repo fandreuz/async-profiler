@@ -1278,7 +1278,7 @@ Error Profiler::startLater() {
         if (error) goto error1;
     }
     if (_engine == &instrument || _event_mask & EM_METHOD_TRACE) {
-        Error error = instrument.start(_global_args);
+        error = instrument.start(_global_args);
         if (error) goto error2;
     }
     return Error::OK;
