@@ -1207,29 +1207,22 @@ Error Profiler::start(Arguments& args, bool reset) {
             goto error1;
         }
     }
-
-    if (_event_mask & EM_LOCK) {
-        error = lock_tracer.start(args);
-        if (error) {
-            goto error2;
-        }
-    }
     if (_event_mask & EM_WALL) {
         error = wall_clock.start(args);
         if (error) {
-            goto error3;
+            goto error2;
         }
     }
     if (_event_mask & EM_NATIVEMEM) {
         error = malloc_tracer.start(args);
         if (error) {
-            goto error4;
+            goto error3;
         }
     }
     if (_event_mask & EM_NATIVELOCK) {
         error = native_lock_tracer.start(args);
         if (error) {
-            goto error5;
+            goto error4;
         }
     }
 
@@ -1253,14 +1246,11 @@ Error Profiler::start(Arguments& args, bool reset) {
 
     return Error::OK;
 
-error5:
+error4:
     if (_event_mask & EM_NATIVEMEM) malloc_tracer.stop();
 
-error4:
-    if (_event_mask & EM_WALL) wall_clock.stop();
-
 error3:
-    if (_event_mask & EM_LOCK) lock_tracer.stop();
+    if (_event_mask & EM_WALL) wall_clock.stop();
 
 error2:
     _engine->stop();
@@ -1279,11 +1269,18 @@ Error Profiler::startLivePhase() {
         error = _alloc_engine->start(_global_args);
         if (error) goto error1;
     }
-    if (_engine == &instrument || _event_mask & EM_METHOD_TRACE) {
-        error = instrument.start(_global_args);
+    if (_event_mask & EM_LOCK) {
+        error = lock_tracer.start(_global_args);
         if (error) goto error2;
     }
+    if (_engine == &instrument || _event_mask & EM_METHOD_TRACE) {
+        error = instrument.start(_global_args);
+        if (error) goto error3;
+    }
     return Error::OK;
+
+error3:
+    if (_event_mask & EM_LOCK) lock_tracer.stop();
 
 error2:
     if (_event_mask & EM_ALLOC) _alloc_engine->stop();
